@@ -24,5 +24,12 @@ export async function cargarUltimosRegistros(dias=90):Promise<Registro[]> {
     .select('id,fecha,proyecto_id,categoria_id,cliente_id,tiempo_minutos,detalle,proyecto:proyectos(nombre),categoria:categorias(nombre,color),cliente:clientes(nombre)')
     .gte('fecha',desde).order('fecha',{ascending:false}).limit(10000);
   if(result.error) throw result.error;
-  return (result.data??[]) as Registro[];
+
+  // Supabase tipa las relaciones 1:N como arrays aunque aquí esperamos una sola fila.
+  return (result.data??[]).map(row => ({
+    ...row,
+    proyecto: Array.isArray(row.proyecto) ? (row.proyecto[0] ?? null) : row.proyecto,
+    categoria: Array.isArray(row.categoria) ? (row.categoria[0] ?? null) : row.categoria,
+    cliente: Array.isArray(row.cliente) ? (row.cliente[0] ?? null) : row.cliente
+  })) as Registro[];
 }
