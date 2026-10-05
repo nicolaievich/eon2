@@ -3,7 +3,19 @@
   "private": true,
   "version": "2.0.0-alpha.1",
   "type": "module",
-  "scripts": {"dev":"vite","build":"tsc && vite build","preview":"vite preview"},
-  "dependencies": {"@supabase/supabase-js":"^2.115.0","preact":"^10.27.2"},
-  "devDependencies": {"@types/node":"^26.4.1","@vitejs/plugin-preact":"^5.1.1","typescript":"~6.0.2","vite":"^8.2.2"}
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2",
+    "@preact/preset-vite": "^2.10.6"
+  }
 }
