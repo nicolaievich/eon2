@@ -9,7 +9,6 @@ const inicioSemana = (d = new Date()) => { const r = new Date(d); const dia = r.
 const inicioMes = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 
 type BalancePreset = 'hoy' | 'semana' | 'mes';
-type Editable = { fecha: string; proyecto_id: string; categoria_id: string; cliente_id: string; tiempo_minutos: string; detalle: string };
 
 function Pie({ datos }: { datos: { nombre: string; minutos: number }[] }) {
   const total = datos.reduce((s, x) => s + x.minutos, 0);
@@ -59,22 +58,47 @@ export function App() {
   const [detalle, setDetalle] = useState('');
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
 
+  const cargarInicio = async (sessionEmail?: string | null) => {
+    try {
+      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      const emailActual = sessionEmail ?? user?.email ?? null;
+      if (!emailActual) {
+        setEmail(null);
+        return;
+      }
+      setEmail(emailActual);
+      const catalogos = await cargarCatalogos();
+      const hoy = fechaLocal();
+      const registros = await cargarRegistros(hoy, hoy);
+      setCat(catalogos);
+      setRegHoy(registros);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron cargar los datos.');
+    }
+  };
+
   useEffect(() => {
     let vivo = true;
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session && vivo) {
-          setEmail(session.user.email ?? null);
-          const catalogos = await cargarCatalogos();
-          const hoy = fechaLocal();
-          const registros = await cargarRegistros(hoy, hoy);
-          if (vivo) { setCat(catalogos); setRegHoy(registros); }
-        }
-      } catch (e) { if (vivo) setError(e instanceof Error ? e.message : 'Error desconocido'); }
-      finally { if (vivo) setIniciando(false); }
+        if (vivo) await cargarInicio(session?.user.email ?? null);
+      } finally {
+        if (vivo) setIniciando(false);
+      }
     })();
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setEmail(session?.user.email ?? null));
+
+    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!vivo) return;
+      if (session) await cargarInicio(session.user.email ?? null);
+      else {
+        setEmail(null);
+        setCat(null);
+        setRegHoy([]);
+        setBalances([]);
+      }
+    });
     return () => { vivo = false; data.subscription.unsubscribe(); };
   }, []);
 
@@ -107,7 +131,7 @@ export function App() {
       tiempo_minutos: totalMinutos, detalle: detalle.trim() || null, user_id: user.id
     });
     if (insertError) setMensaje(`Error: ${insertError.message}`);
-    else { setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); setProyecto(''); setCategoria(''); setCliente(''); if (fecha === fechaLocal()) await recargarHoy(); }
+    else { setError(null); setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); setProyecto(''); setCategoria(''); setCliente(''); if (fecha === fechaLocal()) await recargarHoy(); }
     setGuardandoNuevo(false);
   };
 
@@ -209,13 +233,17 @@ export function App() {
     <td><select class="cell-input" value={String(r.categoria_id)} onChange={e => editar(r,'categoria_id',(e.currentTarget as HTMLSelectElement).value)}>{cat?.categorias.map(c => <option value={c.id} key={c.id}>{c.nombre}</option>)}</select></td>
     <td><select class="cell-input" value={r.cliente_id ? String(r.cliente_id) : ''} onChange={e => editar(r,'cliente_id',(e.currentTarget as HTMLSelectElement).value)}><option value="">—</option>{cat?.clientes.map(c => <option value={c.id} key={c.id}>{c.nombre}</option>)}</select></td>
     <td><input class="cell-input time-cell" type="number" min="1" value={r.tiempo_minutos} onChange={e => editar(r,'tiempo_minutos',(e.currentTarget as HTMLInputElement).value)} title="Minutos" /></td>
-    <td><input class="cell-input" value={r.detalle ?? ''} onChange={e => editar(r,'detalle',(e.currentTarget as HTMLInputElement).value)} /></td>
+    <td><input class="cell-input detail-cell" value={r.detalle ?? ''} onBlur={e => editar(r,'detalle',(e.currentTarget as HTMLInputElement).value)} /></td>
     <td>{guardando === r.id ? <span class="saving">guardando…</span> : <span class="ok-dot">●</span>}</td>
   </tr>;
 
   return <main class="shell">
     <header class="topbar"><div><b>EÓN 2.1</b><h1>{vista === 'hoy' ? 'Hoy' : 'Balances'}</h1><p class="muted">{email}</p></div></header>
-    <nav class="nav"><button class={vista === 'hoy' ? 'active' : ''} onClick={() => setVista('hoy')}>Hoy</button><button class={vista === 'balances' ? 'active' : ''} onClick={() => { setVista('balances'); if (!balances.length) lanzarBalance('hoy'); }}>Balances</button><button class="nav-exit" onClick={async () => { await supabase.auth.signOut(); setEmail(null); }}>Salir</button></nav>
+    <nav class="nav" aria-label="Navegación principal">
+      <button class={vista === 'hoy' ? 'active' : ''} onClick={() => setVista('hoy')}>Hoy</button>
+      <button class={vista === 'balances' ? 'active' : ''} onClick={() => { setVista('balances'); if (!balances.length) lanzarBalance('hoy'); }}>Balances</button>
+      <button class="nav-exit" onClick={async () => { await supabase.auth.signOut(); }}>Salir</button>
+    </nav>
     {error && <section class="card error">{error}</section>}
     {vista === 'hoy' && <section>
       <section class="card registro-card"><div class="registro-heading"><span class="eyebrow">HOY</span><h2>Registrar tiempo</h2><p class="muted">Cargá un nuevo registro. Debajo vas a ver el total, la distribución por categoría y los registros del día.</p></div>
@@ -230,14 +258,36 @@ export function App() {
           {mensaje && <p class={mensaje.startsWith('Registro') ? 'success' : 'error'}>{mensaje}</p>}
         </form>
       </section>
-      <section class="card summary-card"><span class="eyebrow">TOTAL DE HOY</span><strong>{tiempo(totalHoy)}</strong><span class="muted">{regHoy.length} registro{regHoy.length === 1 ? '' : 's'}</span></section>
+      <section class="card summary-card">
+        <span class="eyebrow">TOTAL DE HOY</span>
+        <strong>{tiempo(totalHoy)}</strong>
+        <span class="muted">{regHoy.length} registro{regHoy.length === 1 ? '' : 's'} cargado{regHoy.length === 1 ? '' : 's'}</span>
+      </section>
       <section class="card"><div class="section-title"><div><span class="eyebrow">DISTRIBUCIÓN</span><h2>Hoy por categoría</h2></div></div><Pie datos={datosHoy} /></section>
       <section class="card"><div class="section-title"><div><span class="eyebrow">REGISTROS DE HOY</span><h2>Editar registros</h2></div></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Proyecto</th><th>Categoría</th><th>Cliente</th><th>Minutos</th><th>Detalle</th><th></th></tr></thead><tbody>{regHoy.length ? regHoy.map(fila) : <tr><td colSpan={7} class="empty">Todavía no hay registros para hoy.</td></tr>}</tbody></table></div></section>
     </section>}
     {vista === 'balances' && <section>
-      <section class="card balance-controls"><span class="eyebrow">BALANCES</span><h2>Consultar período</h2>
-        <div class="preset-buttons"><button class={balancePreset==='hoy'?'selected':''} onClick={() => lanzarBalance('hoy')}>Hoy</button><button class={balancePreset==='semana'?'selected':''} onClick={() => lanzarBalance('semana')}>Semana</button><button class={balancePreset==='mes'?'selected':''} onClick={() => lanzarBalance('mes')}>Mes</button></div>
-        <div class="search-grid"><label>Buscar en todo<input value={busqueda} onInput={e => setBusqueda((e.currentTarget as HTMLInputElement).value)} placeholder="Texto libre..." /></label><label>Desde<input type="date" value={fDesde} onInput={e => setFDesde((e.currentTarget as HTMLInputElement).value)} /></label><label>Hasta<input type="date" value={fHasta} onInput={e => setFHasta((e.currentTarget as HTMLInputElement).value)} /></label><label>Proyecto<select value={fProyecto} onChange={e => setFProyecto((e.currentTarget as HTMLSelectElement).value)}><option value="">Todos</option>{cat?.proyectos.map(p=><option value={p.id} key={p.id}>{p.nombre}</option>)}</select></label><label>Categoría<select value={fCategoria} onChange={e => setFCategoria((e.currentTarget as HTMLSelectElement).value)}><option value="">Todas</option>{cat?.categorias.map(c=><option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label><label>Cliente<select value={fCliente} onChange={e => setFCliente((e.currentTarget as HTMLSelectElement).value)}><option value="">Todos</option>{cat?.clientes.map(c=><option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label><label>Detalle contiene<input value={fDetalle} onInput={e => setFDetalle((e.currentTarget as HTMLInputElement).value)} placeholder="Filtrar detalle..." /></label><button class="search-button" onClick={buscar} disabled={cargandoBalance}>{cargandoBalance ? 'Consultando…' : 'Buscar'}</button></div>
+      <section class="card balance-controls">
+        <div class="section-title">
+          <div><span class="eyebrow">BALANCES</span><h2>Consultar período</h2></div>
+          <span class="query-status">{balancePreset === 'hoy' ? 'Hoy' : balancePreset === 'semana' ? 'Semana actual' : 'Mes actual'}</span>
+        </div>
+        <p class="muted balance-help">Elegí un período predefinido o armá una consulta con los filtros. El resultado se actualiza abajo con total, gráfico y detalle editable.</p>
+        <div class="preset-buttons">
+          <button class={balancePreset==='hoy'?'selected':''} onClick={() => lanzarBalance('hoy')}>Hoy</button>
+          <button class={balancePreset==='semana'?'selected':''} onClick={() => lanzarBalance('semana')}>Semana</button>
+          <button class={balancePreset==='mes'?'selected':''} onClick={() => lanzarBalance('mes')}>Mes</button>
+        </div>
+        <div class="search-grid">
+          <label class="search-wide">Buscar en todo<input value={busqueda} onInput={e => setBusqueda((e.currentTarget as HTMLInputElement).value)} placeholder="Proyecto, cliente, categoría, detalle..." /></label>
+          <label>Desde<input type="date" value={fDesde} onInput={e => setFDesde((e.currentTarget as HTMLInputElement).value)} /></label>
+          <label>Hasta<input type="date" value={fHasta} onInput={e => setFHasta((e.currentTarget as HTMLInputElement).value)} /></label>
+          <label>Proyecto<select value={fProyecto} onChange={e => setFProyecto((e.currentTarget as HTMLSelectElement).value)}><option value="">Todos</option>{cat?.proyectos.map(p=><option value={p.id} key={p.id}>{p.nombre}</option>)}</select></label>
+          <label>Categoría<select value={fCategoria} onChange={e => setFCategoria((e.currentTarget as HTMLSelectElement).value)}><option value="">Todas</option>{cat?.categorias.map(c=><option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label>
+          <label>Cliente<select value={fCliente} onChange={e => setFCliente((e.currentTarget as HTMLSelectElement).value)}><option value="">Todos</option>{cat?.clientes.map(c=><option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label>
+          <label>Detalle contiene<input value={fDetalle} onInput={e => setFDetalle((e.currentTarget as HTMLInputElement).value)} placeholder="Filtrar detalle..." /></label>
+          <div class="search-actions"><button class="search-button" onClick={buscar} disabled={cargandoBalance}>{cargandoBalance ? 'Consultando…' : 'Buscar'}</button><button class="reset-search" type="button" onClick={() => { setBusqueda(''); setFDesde(''); setFHasta(''); setFCategoria(''); setFProyecto(''); setFCliente(''); setFDetalle(''); lanzarBalance(balancePreset); }}>Limpiar</button></div>
+        </div>
       </section>
       <section class="card summary-card"><span class="eyebrow">RESULTADO</span><strong>{tiempo(totalBalance)}</strong><span class="muted">{filtrados.length} registro{filtrados.length === 1 ? '' : 's'}</span></section>
       <section class="card"><div class="section-title"><div><span class="eyebrow">DISTRIBUCIÓN</span><h2>Por categoría</h2></div></div><Pie datos={datosBalance} /></section>
