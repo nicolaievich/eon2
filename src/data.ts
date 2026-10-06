@@ -78,3 +78,19 @@ export async function actualizarProyecto(id: number, datos: { nombre: string; de
   const result = await supabase.from('proyectos').update(datos).eq('id', id).eq('user_id', await usuarioId());
   if (result.error) throw result.error;
 }
+
+export async function actualizarRegistro(id: number, datos: {
+  fecha: string;
+  proyecto_id: number | null;
+  categoria_id: number;
+  cliente_id: number | null;
+  tiempo_minutos: number;
+  detalle: string | null;
+}): Promise<void> {
+  const result = await supabase
+    .from('registros')
+    .update(datos)
+    .eq('id', id)
+    .eq('user_id', await usuarioId());
+  if (result.error) throw result.error;
+}
