@@ -1,307 +1,78 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { supabase } from './lib/supabase';
-import { cargarCatalogos, cargarUltimosRegistros } from './data';
+import { actualizarCategoria, actualizarCliente, actualizarProyecto, cargarCatalogos, cargarRegistros, crearCategoria, crearCliente, crearProyecto, crearRegistro } from './data';
 import type { Catalogos, Registro } from './types';
 
-const tiempo = (m: number) =>
-  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+type Vista = 'registro' | 'balances' | 'ajustes';
+type Periodo = 'hoy' | 'semana' | 'mes';
+type Ajuste = 'inicio' | 'clientes' | 'categorias' | 'proyectos';
+const minutos = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const inicioSemana = (d: Date) => { const x = new Date(d); const day = x.getDay() || 7; x.setDate(x.getDate() - day + 1); return x; };
+const inicioMes = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+const fechaLocal = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 
 export function App() {
-  const [iniciando, setIniciando] = useState(true);
-  const [email, setEmail] = useState<string | null>(null);
-  const [cat, setCat] = useState<Catalogos | null>(null);
-  const [reg, setReg] = useState<Registro[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginBusy, setLoginBusy] = useState(false);
-  const [loginMessage, setLoginMessage] = useState<string | null>(null);
-  const [authView, setAuthView] = useState<'login' | 'registro' | 'recuperar' | 'enviado' | 'confirmar'>('login');
-  const [registroEmail, setRegistroEmail] = useState('');
-  const [registroPassword, setRegistroPassword] = useState('');
-  const [resetEmail, setResetEmail] = useState('');
-  const [authBusy, setAuthBusy] = useState(false);
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [vista, setVista] = useState<'hoy' | 'registros' | 'analisis'>('hoy');
-
-  useEffect(() => {
-    let vivo = true;
-
-    const iniciar = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!vivo) return;
-
-        if (session) {
-          setEmail(session.user.email ?? null);
-          const [catalogos, registros] = await Promise.all([
-            cargarCatalogos(),
-            cargarUltimosRegistros(),
-          ]);
-          if (vivo) {
-            setCat(catalogos);
-            setReg(registros);
-          }
-        }
-      } catch (e) {
-        if (vivo) setError(e instanceof Error ? e.message : 'Error desconocido');
-      } finally {
-        if (vivo) setIniciando(false);
-      }
-    };
-
-    iniciar();
-
-    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!vivo) return;
-
-      setEmail(session?.user.email ?? null);
-
-      if (session) {
-        try {
-          const [catalogos, registros] = await Promise.all([
-            cargarCatalogos(),
-            cargarUltimosRegistros(),
-          ]);
-          if (vivo) {
-            setCat(catalogos);
-            setReg(registros);
-            setError(null);
-          }
-        } catch (e) {
-          if (vivo) setError(e instanceof Error ? e.message : 'Error desconocido');
-        }
-      } else {
-        setCat(null);
-        setReg([]);
-      }
-    });
-
-    return () => {
-      vivo = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
-
-  const entrar = async (event: Event) => {
-    event.preventDefault();
-    setLoginBusy(true);
-    setLoginMessage(null);
-    setError(null);
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-
-    if (authError) setLoginMessage(authError.message);
-    setLoginBusy(false);
-  };
-
-  if (iniciando) {
-    return (
-      <main class="shell narrow">
-        <section class="card">
-          <b>EÓN 2.0 · ALPHA</b>
-          <h1>Registro de Tiempos</h1>
-          <p class="muted">Iniciando aplicación…</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (!email) {
-    const titulo = authView === 'login' ? 'Ingresar' : authView === 'registro' ? 'Crear cuenta' : authView === 'recuperar' ? 'Recuperar contraseña' : authView === 'enviado' ? 'Revisá tu correo' : 'Confirmá tu correo';
-
-    const registrar = async (event: Event) => {
-      event.preventDefault(); setAuthBusy(true); setAuthMessage(null);
-      const { error } = await supabase.auth.signUp({ email: registroEmail.trim(), password: registroPassword });
-      setAuthBusy(false);
-      if (error) setAuthMessage(error.message);
-      else setAuthView('confirmar');
-    };
-
-    const recuperar = async (event: Event) => {
-      event.preventDefault(); setAuthBusy(true); setAuthMessage(null);
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), { redirectTo: window.location.origin });
-      setAuthBusy(false);
-      if (error) setAuthMessage(error.message);
-      else setAuthView('enviado');
-    };
-
-    const entrar = async (event: Event) => {
-      event.preventDefault(); setLoginBusy(true); setLoginMessage(null); setError(null);
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
-      if (authError) setLoginMessage(authError.message);
-      setLoginBusy(false);
-    };
-
-    return (
-      <main class="shell narrow auth-shell">
-        <section class="card auth-card">
-          <b>EÓN 2.0 · ALPHA</b>
-          <h1>{titulo}</h1>
-
-          {authView === 'login' && <form onSubmit={entrar} class="login-form">
-            <label>Email<input type="email" value={loginEmail} onInput={(e) => setLoginEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
-            <label>Contraseña<input type="password" value={loginPassword} onInput={(e) => setLoginPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="current-password" required /></label>
-            <button type="submit" disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
-            {loginMessage && <p class="error">{loginMessage}</p>}
-            <button type="button" class="secondary" onClick={() => {setAuthMessage(null);setAuthView('registro')}}>Crear una cuenta</button>
-            <button type="button" class="link-button" onClick={() => {setAuthMessage(null);setAuthView('recuperar')}}>¿Olvidaste tu contraseña?</button>
-          </form>}
-
-          {authView === 'registro' && <form onSubmit={registrar} class="login-form">
-            <label>Email<input type="email" value={registroEmail} onInput={(e) => setRegistroEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
-            <label>Contraseña<input type="password" value={registroPassword} onInput={(e) => setRegistroPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="new-password" minLength={6} required /></label>
-            <button type="submit" disabled={authBusy}>{authBusy ? 'Creando…' : 'Registrarme'}</button>
-            {authMessage && <p class="error">{authMessage}</p>}
-            <button type="button" class="link-button" onClick={() => setAuthView('login')}>Ya tengo una cuenta</button>
-          </form>}
-
-          {authView === 'recuperar' && <form onSubmit={recuperar} class="login-form">
-            <label>Email<input type="email" value={resetEmail} onInput={(e) => setResetEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
-            <button type="submit" disabled={authBusy}>{authBusy ? 'Enviando…' : 'Enviar enlace de recuperación'}</button>
-            {authMessage && <p class="error">{authMessage}</p>}
-            <button type="button" class="link-button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
-          </form>}
-
-          {authView === 'enviado' && <div class="auth-message">
-            <p>Si existe una cuenta con ese correo, recibirás un enlace para restablecer la contraseña.</p>
-            <button type="button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
-          </div>}
-
-          {authView === 'confirmar' && <div class="auth-message">
-            <p>Te enviamos un correo de confirmación. Abrí el enlace del mensaje para activar tu cuenta.</p>
-            <button type="button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
-          </div>}
-
-          <p class="muted small">EÓN 1.9 continúa siendo la versión estable y no se modifica.</p>
-        </section>
-      </main>
-    );
-  }
-
-  const total = reg.reduce((s, r) => s + Number(r.tiempo_minutos || 0), 0);
-  const porProyecto = new Map<string, number>();
-  for (const r of reg) {
-    const nombre = r.proyecto?.nombre ?? 'Sin proyecto';
-    porProyecto.set(nombre, (porProyecto.get(nombre) ?? 0) + Number(r.tiempo_minutos || 0));
-  }
-  const proyectosOrdenados = [...porProyecto.entries()].sort((a, b) => b[1] - a[1]);
-
-  return (
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <b>EÓN 2.0 · ALPHA 1</b>
-          <h1>{vista === 'hoy' ? 'Hoy' : vista === 'registros' ? 'Registros' : 'Análisis'}</h1>
-          <p class="muted">{email}</p>
-        </div>
-      </header>
-
-      <nav class="nav">
-        {(['hoy', 'registros', 'analisis'] as const).map((item) => (
-          <button class={vista === item ? 'active' : ''} onClick={() => setVista(item)}>
-            {item === 'hoy' ? 'Hoy' : item === 'registros' ? 'Registros' : 'Análisis'}
-          </button>
-        ))}
-      </nav>
-
-      {error && <section class="card error">{error}</section>}
-
-      {vista === 'hoy' && <>
-      <section class="card hero">
-        <div>
-          <span class="muted">Últimos 90 días</span>
-          <strong>{tiempo(total)}</strong>
-        </div>
-        <span class="badge">SOLO LECTURA</span>
-      </section>
-
-      <section class="grid">
-        {[
-          ['Proyectos', cat?.proyectos.length],
-          ['Categorías', cat?.categorias.length],
-          ['Clientes', cat?.clientes.length],
-          ['Registros', reg.length],
-        ].map(([nombre, valor]) => (
-          <article class="card" key={String(nombre)}>
-            <span class="muted">{nombre}</span>
-            <strong>{valor ?? 0}</strong>
-          </article>
-        ))}
-      </section>
-
-      <section class="card">
-        <b>Actividad reciente</b>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Proyecto</th>
-                <th>Categoría</th>
-                <th>Cliente</th>
-                <th>Tiempo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reg.slice(0, 25).map((r) => (
-                <tr key={r.id}>
-                  <td>{r.fecha}</td>
-                  <td>{r.proyecto?.nombre ?? '—'}</td>
-                  <td>{r.categoria?.nombre ?? '—'}</td>
-                  <td>{r.cliente?.nombre ?? '—'}</td>
-                  <td>{tiempo(r.tiempo_minutos)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      </>}
-
-      {vista === 'registros' && (
-        <section class="card">
-          <b>Registros · últimos 90 días</b>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Fecha</th><th>Proyecto</th><th>Categoría</th><th>Cliente</th><th>Detalle</th><th>Tiempo</th></tr></thead>
-              <tbody>{reg.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.fecha}</td>
-                  <td>{r.proyecto?.nombre ?? '—'}</td>
-                  <td>{r.categoria?.nombre ?? '—'}</td>
-                  <td>{r.cliente?.nombre ?? '—'}</td>
-                  <td>{r.detalle ?? '—'}</td>
-                  <td>{tiempo(r.tiempo_minutos)}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {vista === 'analisis' && (
-        <>
-          <section class="card hero">
-            <div><span class="muted">Total · últimos 90 días</span><strong>{tiempo(total)}</strong></div>
-          </section>
-          <section class="card">
-            <b>Tiempo por proyecto</b>
-            <div class="bars">
-              {proyectosOrdenados.map(([nombre, minutos]) => (
-                <div class="bar-row" key={nombre}>
-                  <div class="bar-label"><span>{nombre}</span><b>{tiempo(minutos)}</b></div>
-                  <div class="bar"><span style={{ width: `${total ? Math.max(2, minutos / total * 100) : 0}%` }} /></div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-    </main>
-  );
+  const [iniciando, setIniciando] = useState(true); const [email, setEmail] = useState<string | null>(null);
+  const [cat, setCat] = useState<Catalogos | null>(null); const [reg, setReg] = useState<Registro[]>([]);
+  const [vista, setVista] = useState<Vista>('registro'); const [periodo, setPeriodo] = useState<Periodo>('hoy');
+  const [ajuste, setAjuste] = useState<Ajuste>('inicio'); const [error, setError] = useState<string | null>(null);
+  const cargar = async () => { const [catalogos, registros] = await Promise.all([cargarCatalogos(), cargarRegistros(iso(inicioMes(new Date()))) ]); setCat(catalogos); setReg(registros); setError(null); };
+  useEffect(() => { let vivo = true; (async () => { try { const { data: { session } } = await supabase.auth.getSession(); if (!vivo) return; setEmail(session?.user.email ?? null); if (session) await cargar(); } catch (e) { if (vivo) setError(e instanceof Error ? e.message : 'Error desconocido'); } finally { if (vivo) setIniciando(false); } })(); const { data } = supabase.auth.onAuthStateChange(async (_event, session) => { setEmail(session?.user.email ?? null); if (session) { try { await cargar(); } catch (e) { setError(e instanceof Error ? e.message : 'Error desconocido'); } } else { setCat(null); setReg([]); } }); return () => { vivo = false; data.subscription.unsubscribe(); }; }, []);
+  if (iniciando) return <main class="shell narrow"><section class="card splash"><b>EÓN 2.0</b><h1>Registro de Tiempos</h1><p>Iniciando…</p></section></main>;
+  if (!email) return <Auth />;
+  return <main class="shell">
+    <header class="topbar"><div><div class="eyebrow">EÓN 2.0</div><h1>{vista === 'registro' ? 'Registro' : vista === 'balances' ? 'Balances' : 'Ajustes'}</h1><p class="muted">{email}</p></div><button class="ghost" onClick={() => supabase.auth.signOut()}>Salir</button></header>
+    <nav class="main-nav">{(['registro','balances','ajustes'] as Vista[]).map(v => <button class={vista === v ? 'active' : ''} onClick={() => setVista(v)}>{v[0].toUpperCase() + v.slice(1)}</button>)}</nav>
+    {error && <section class="card error">{error}</section>}
+    {vista === 'registro' && <RegistroView cat={cat} onSaved={cargar} />}
+    {vista === 'balances' && <Balances reg={reg} periodo={periodo} setPeriodo={setPeriodo} />}
+    {vista === 'ajustes' && <Ajustes cat={cat} ajuste={ajuste} setAjuste={setAjuste} onChanged={cargar} />}
+  </main>;
 }
+
+function RegistroView({ cat, onSaved }: { cat: Catalogos | null; onSaved: () => Promise<void> }) {
+  const [fecha, setFecha] = useState(fechaLocal()); const [proyecto, setProyecto] = useState(''); const [categoria, setCategoria] = useState(''); const [cliente, setCliente] = useState('');
+  const [horas, setHoras] = useState('00'); const [mins, setMins] = useState('00'); const [detalle, setDetalle] = useState(''); const [busy, setBusy] = useState(false); const [mensaje, setMensaje] = useState('');
+  const guardar = async (e: Event) => { e.preventDefault(); setMensaje(''); setBusy(true); try { const h = Number(horas), m = Number(mins); if (!categoria) throw new Error('Seleccioná una categoría.'); if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0 || m > 59 || h * 60 + m <= 0) throw new Error('Ingresá un tiempo válido.'); await crearRegistro({ fecha, proyecto_id: proyecto ? Number(proyecto) : null, categoria_id: Number(categoria), cliente_id: cliente ? Number(cliente) : null, tiempo_minutos: h * 60 + m, detalle: detalle.trim() || null }); setHoras('00'); setMins('00'); setDetalle(''); setMensaje('Registro guardado correctamente.'); await onSaved(); } catch (e) { setMensaje(e instanceof Error ? e.message : 'No se pudo guardar.'); } finally { setBusy(false); } };
+  return <section class="card form-card"><div class="section-head"><div><div class="eyebrow">Cargar tiempo</div><h2>Nuevo registro</h2></div></div><form onSubmit={guardar} class="form-grid">
+    <label>Fecha<input type="date" value={fecha} onInput={e => setFecha(e.currentTarget.value)} required /></label>
+    <label>Proyecto<select value={proyecto} onChange={e => setProyecto(e.currentTarget.value)}><option value="">Sin proyecto</option>{cat?.proyectos.map(p => <option value={p.id}>{p.nombre}</option>)}</select></label>
+    <label>Categoría<select value={categoria} onChange={e => setCategoria(e.currentTarget.value)} required><option value="">Seleccionar…</option>{cat?.categorias.map(c => <option value={c.id}>{c.nombre}</option>)}</select></label>
+    <label>Cliente<select value={cliente} onChange={e => setCliente(e.currentTarget.value)}><option value="">Sin cliente</option>{cat?.clientes.map(c => <option value={c.id}>{c.nombre}</option>)}</select></label>
+    <label>Horas<input inputMode="numeric" value={horas} onInput={e => setHoras(e.currentTarget.value.replace(/\D/g, '').slice(0, 2))} /></label>
+    <label>Minutos<input inputMode="numeric" value={mins} onInput={e => setMins(e.currentTarget.value.replace(/\D/g, '').slice(0, 2))} /></label>
+    <label class="wide">Detalle<textarea value={detalle} onInput={e => setDetalle(e.currentTarget.value)} rows={4} placeholder="¿Qué hiciste?" /></label>
+    <div class="wide form-actions"><button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Guardar registro'}</button>{mensaje && <span class="form-message">{mensaje}</span>}</div>
+  </form></section>;
+}
+
+function Balances({ reg, periodo, setPeriodo }: { reg: Registro[]; periodo: Periodo; setPeriodo: (p: Periodo) => void }) {
+  const ahora = new Date(); const desde = periodo === 'hoy' ? iso(ahora) : periodo === 'semana' ? iso(inicioSemana(ahora)) : iso(inicioMes(ahora)); const filtrados = reg.filter(r => r.fecha >= desde);
+  const total = filtrados.reduce((s, r) => s + Number(r.tiempo_minutos), 0); const porProyecto = useMemo(() => agrupar(filtrados, r => r.proyecto?.nombre ?? 'Sin proyecto'), [filtrados]); const porCategoria = useMemo(() => agrupar(filtrados, r => r.categoria?.nombre ?? 'Sin categoría'), [filtrados]); const max = Math.max(...porProyecto.map(x => x[1]), 1);
+  return <><div class="period-tabs">{(['hoy','semana','mes'] as Periodo[]).map(p => <button class={periodo === p ? 'active' : ''} onClick={() => setPeriodo(p)}>{p === 'hoy' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}</button>)}</div>
+    <section class="balance-hero"><span>Tiempo registrado</span><strong>{minutos(total)}</strong><small>{periodo === 'hoy' ? 'Hoy' : periodo === 'semana' ? 'Esta semana' : 'Este mes'}</small></section>
+    <section class="stats-grid"><article class="card stat"><span>Registros</span><b>{filtrados.length}</b></article><article class="card stat"><span>Proyectos</span><b>{porProyecto.length}</b></article><article class="card stat"><span>Categorías</span><b>{porCategoria.length}</b></article></section>
+    <section class="card"><div class="section-head"><h2>Tiempo por proyecto</h2></div><div class="bars">{porProyecto.length ? porProyecto.map(([nombre, valor]) => <div class="bar-row"><div><span>{nombre}</span><b>{minutos(valor)}</b></div><div class="bar"><i style={{ width: Math.max(3, valor / max * 100) + '%' }} /></div></div>) : <p class="muted">Sin registros en este período.</p>}</div></section>
+    <section class="card"><div class="section-head"><h2>Por categoría</h2></div><div class="category-list">{porCategoria.map(([nombre, valor]) => <div><span>{nombre}</span><b>{minutos(valor)}</b></div>)}</div></section>
+  </>;
+}
+function agrupar(reg: Registro[], key: (r: Registro) => string): [string, number][] { const mapa = new Map<string, number>(); reg.forEach(r => mapa.set(key(r), (mapa.get(key(r)) ?? 0) + Number(r.tiempo_minutos))); return [...mapa.entries()].sort((a, b) => b[1] - a[1]); }
+
+function Ajustes({ cat, ajuste, setAjuste, onChanged }: { cat: Catalogos | null; ajuste: Ajuste; setAjuste: (a: Ajuste) => void; onChanged: () => Promise<void> }) {
+  if (ajuste === 'inicio') return <section class="settings-grid">{[['clientes','Clientes','Personas para asociar registros'],['categorias','Categorías','Clasificación y color'],['proyectos','Proyectos','Organización del trabajo']].map(([id,t,d]) => <button class="settings-card" onClick={() => setAjuste(id as Ajuste)}><span>{t === 'Clientes' ? '👤' : t === 'Categorías' ? '●' : '▣'}</span><b>{t}</b><small>{d}</small></button>)}</section>;
+  return <section><button class="back" onClick={() => setAjuste('inicio')}>← Ajustes</button><div class="section-head"><div><div class="eyebrow">Administrar</div><h2>{ajuste[0].toUpperCase() + ajuste.slice(1)}</h2></div></div><Catalogo tipo={ajuste} cat={cat} onChanged={onChanged} /></section>;
+}
+
+function Catalogo({ tipo, cat, onChanged }: { tipo: 'clientes' | 'categorias' | 'proyectos'; cat: Catalogos | null; onChanged: () => Promise<void> }) {
+  const [nombre, setNombre] = useState(''); const [extra, setExtra] = useState(tipo === 'categorias' ? '#d28a00' : ''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const items = tipo === 'clientes' ? cat?.clientes ?? [] : tipo === 'categorias' ? cat?.categorias ?? [] : cat?.proyectos ?? [];
+  const guardar = async (e: Event) => { e.preventDefault(); setBusy(true); setMsg(''); try { if (!nombre.trim()) throw new Error('El nombre es obligatorio.'); if (tipo === 'clientes') await crearCliente({ nombre: nombre.trim(), contacto: extra.trim() || null }); if (tipo === 'categorias') await crearCategoria({ nombre: nombre.trim(), color: extra }); if (tipo === 'proyectos') await crearProyecto({ nombre: nombre.trim(), descripcion: extra.trim() || null }); setNombre(''); setExtra(tipo === 'categorias' ? '#d28a00' : ''); setMsg('Guardado.'); await onChanged(); } catch (e) { setMsg(e instanceof Error ? e.message : 'No se pudo guardar.'); } finally { setBusy(false); } };
+  return <><form class="inline-form" onSubmit={guardar}><label>Nombre<input value={nombre} onInput={e => setNombre(e.currentTarget.value)} /></label>{tipo === 'categorias' ? <label>Color<input type="color" value={extra} onInput={e => setExtra(e.currentTarget.value)} /></label> : <label>{tipo === 'clientes' ? 'Contacto' : 'Descripción'}<input value={extra} onInput={e => setExtra(e.currentTarget.value)} /></label>}<button disabled={busy}>{busy ? 'Guardando…' : 'Agregar'}</button></form>{msg && <p class="form-message">{msg}</p>}<div class="catalog-list">{items.map(item => <CatalogItem key={item.id} item={item} tipo={tipo} onChanged={onChanged} />)}</div></>;
+}
+function CatalogItem({ item, tipo, onChanged }: { item: any; tipo: 'clientes' | 'categorias' | 'proyectos'; onChanged: () => Promise<void> }) {
+  const editar = async () => { const nombre = prompt('Nuevo nombre:', item.nombre); if (nombre === null || !nombre.trim()) return; try { if (tipo === 'clientes') await actualizarCliente(item.id, { nombre: nombre.trim(), contacto: item.contacto ?? null }); if (tipo === 'categorias') await actualizarCategoria(item.id, { nombre: nombre.trim(), color: item.color ?? '#d28a00' }); if (tipo === 'proyectos') await actualizarProyecto(item.id, { nombre: nombre.trim(), descripcion: item.descripcion ?? null }); await onChanged(); } catch (e) { alert(e instanceof Error ? e.message : 'No se pudo actualizar.'); } };
+  return <article class="catalog-item"><span class={tipo === 'categorias' ? 'dot' : 'item-icon'} style={tipo === 'categorias' ? { background: item.color ?? '#999' } : {}}>{tipo === 'categorias' ? '' : tipo === 'clientes' ? '👤' : '▣'}</span><div><b>{item.nombre}</b><small>{tipo === 'clientes' ? item.contacto || 'Sin contacto' : tipo === 'categorias' ? 'Categoría' : item.descripcion || 'Sin descripción'}</small></div><button class="ghost" onClick={editar}>Editar</button></article>;
+}
+
+function Auth() { const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState(''); const entrar = async (e: Event) => { e.preventDefault(); setBusy(true); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) setMsg(error.message); setBusy(false); }; return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="eyebrow">EÓN 2.0</div><h1>Registro de Tiempos</h1><form class="login-form" onSubmit={entrar}><label>Email<input type="email" value={email} onInput={e => setEmail(e.currentTarget.value)} required /></label><label>Contraseña<input type="password" value={password} onInput={e => setPassword(e.currentTarget.value)} required /></label><button disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</button>{msg && <p class="error">{msg}</p>}</form><p class="muted small">EÓN 1.9 continúa siendo la versión estable.</p></section></main>; }
