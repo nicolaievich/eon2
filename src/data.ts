@@ -1,11 +1,18 @@
 import { supabase } from './lib/supabase';
 import type { Catalogos, Registro } from './types';
 
+async function usuarioActualId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No estás autenticado.');
+  return user.id;
+}
+
 export async function cargarCatalogos(): Promise<Catalogos> {
+  const userId = await usuarioActualId();
   const [proyectos, categorias, clientes] = await Promise.all([
-    supabase.from('proyectos').select('id,nombre,descripcion,activo').eq('activo', true).order('nombre'),
-    supabase.from('categorias').select('id,nombre,color').order('nombre'),
-    supabase.from('clientes').select('id,nombre,contacto').order('nombre')
+    supabase.from('proyectos').select('id,nombre,descripcion,activo').eq('user_id', userId).eq('activo', true).order('nombre'),
+    supabase.from('categorias').select('id,nombre,color').eq('user_id', userId).order('nombre'),
+    supabase.from('clientes').select('id,nombre,contacto').eq('user_id', userId).order('nombre')
   ]);
   if (proyectos.error) throw proyectos.error;
   if (categorias.error) throw categorias.error;
@@ -14,32 +21,60 @@ export async function cargarCatalogos(): Promise<Catalogos> {
 }
 
 export async function crearCategoria(nombre: string, color: string) {
-  const { error } = await supabase.from('categorias').insert({ nombre: nombre.trim(), color: color || null });
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('categorias').insert({
+    user_id: userId,
+    nombre: nombre.trim(),
+    color: color || null
+  });
   if (error) throw error;
 }
 
 export async function actualizarCategoria(id: number, nombre: string, color: string) {
-  const { error } = await supabase.from('categorias').update({ nombre: nombre.trim(), color: color || null }).eq('id', id);
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('categorias')
+    .update({ nombre: nombre.trim(), color: color || null })
+    .eq('id', id)
+    .eq('user_id', userId);
   if (error) throw error;
 }
 
 export async function crearProyecto(nombre: string, descripcion: string) {
-  const { error } = await supabase.from('proyectos').insert({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo: true });
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('proyectos').insert({
+    user_id: userId,
+    nombre: nombre.trim(),
+    descripcion: descripcion.trim() || null,
+    activo: true
+  });
   if (error) throw error;
 }
 
 export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean) {
-  const { error } = await supabase.from('proyectos').update({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo }).eq('id', id);
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('proyectos')
+    .update({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo })
+    .eq('id', id)
+    .eq('user_id', userId);
   if (error) throw error;
 }
 
 export async function crearCliente(nombre: string, contacto: string) {
-  const { error } = await supabase.from('clientes').insert({ nombre: nombre.trim(), contacto: contacto.trim() || null });
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('clientes').insert({
+    user_id: userId,
+    nombre: nombre.trim(),
+    contacto: contacto.trim() || null
+  });
   if (error) throw error;
 }
 
 export async function actualizarCliente(id: number, nombre: string, contacto: string) {
-  const { error } = await supabase.from('clientes').update({ nombre: nombre.trim(), contacto: contacto.trim() || null }).eq('id', id);
+  const userId = await usuarioActualId();
+  const { error } = await supabase.from('clientes')
+    .update({ nombre: nombre.trim(), contacto: contacto.trim() || null })
+    .eq('id', id)
+    .eq('user_id', userId);
   if (error) throw error;
 }
 
