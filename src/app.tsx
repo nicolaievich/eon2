@@ -44,6 +44,7 @@ export function App() {
   const [fDetalle, setFDetalle] = useState('');
   const [guardando, setGuardando] = useState<number | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [sesionAbierta, setSesionAbierta] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -219,9 +220,9 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando) return <main class="shell narrow"><section class="card"><b>EÓN 2.1</b><h1>Registro de Tiempos</h1><p class="muted">Iniciando aplicación…</p></section></main>;
+  if (iniciando) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.1</span></div><h1>Registro de Tiempos</h1><p class="muted">Iniciando aplicación…</p></section></main>;
 
-  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><b>EÓN 2.1</b><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
+  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon {__VERSION__}</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
     <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
     <label>Contraseña<input type="password" value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} required /></label>
     <button disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
@@ -239,7 +240,16 @@ export function App() {
   </tr>;
 
   return <main class="shell">
-    <header class="topbar"><div><b>EÓN 2.1</b><h1>{vista === 'hoy' ? 'Hoy' : 'Balances'}</h1><p class="muted">{email}</p></div></header>
+    <header class="topbar">
+      <div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon {__VERSION__}</span></div>
+      <div class="session-wrap">
+        <button class="session-button" aria-label="Estado de sesión" aria-expanded={sesionAbierta} onClick={() => setSesionAbierta(v => !v)}>👤</button>
+        {sesionAbierta && <div class="session-menu">
+          <span class="session-email">{email}</span>
+          <button class="session-logout" onClick={async () => { setSesionAbierta(false); await supabase.auth.signOut(); }}>Salir</button>
+        </div>}
+      </div>
+    </header>
     <nav class="nav" aria-label="Navegación principal">
       <button class={vista === 'hoy' ? 'active' : ''} onClick={() => setVista('hoy')}>Hoy</button>
       <button class={vista === 'balances' ? 'active' : ''} onClick={() => { setVista('balances'); if (!balances.length) lanzarBalance('hoy'); }}>Balances</button>
