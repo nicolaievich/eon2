@@ -4,3 +4,33 @@
 
 .nav{display:flex;gap:.5rem;margin-bottom:1rem;position:sticky;top:0;background:var(--surface);padding:.5rem;border:1px solid var(--border);border-radius:12px;z-index:2}.nav button{flex:1;padding:.65rem;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.nav button.active{background:#171717;color:#fff}.bars{display:grid;gap:1rem;margin-top:1rem}.bar-label{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.35rem}.bar{height:10px;background:var(--border);border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;background:#171717;border-radius:99px}@media(prefers-color-scheme:dark){.nav button.active,.bar span{background:#fff;color:#111}}
 .auth-shell{min-height:100vh;display:grid;place-items:center}.auth-card{width:100%;padding:clamp(1.5rem,5vw,3rem)}.auth-card h1{margin-bottom:1.5rem}.secondary{background:var(--border)!important;color:inherit!important}.link-button{border:0!important;background:transparent!important;color:inherit!important;text-decoration:underline;cursor:pointer}.auth-message{display:grid;gap:1rem}.auth-message button{padding:.75rem 1rem;border:0;border-radius:8px;background:#171717;color:#fff;font-weight:700;cursor:pointer}
+/* Registro de tiempo — EÓN 2.1 */
+:root{
+  --arena:#ead9b7;
+  --arena-soft:#f5eddd;
+  --amarillo:#b88900;
+  --naranja:#e47720;
+  --naranja-dark:#c75f12;
+}
+body{background:var(--arena-soft)}
+.registro-card{border:1px solid #dcc79c;background:var(--surface);padding:clamp(1.1rem,3vw,2rem)}
+.registro-heading{border-bottom:1px solid #eadfc8;padding-bottom:1rem;margin-bottom:1.2rem}
+.registro-heading h2{font-size:clamp(1.7rem,5vw,2.4rem);margin:.2rem 0}
+.eyebrow{color:var(--naranja-dark);font-size:.72rem;font-weight:800;letter-spacing:.14em}
+.registro-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.registro-form label{display:grid;gap:.4rem;font-weight:700}
+.registro-form input,.registro-form select,.registro-form textarea{width:100%;padding:.78rem .85rem;border:1px solid #d5c49f;border-radius:10px;background:#fffdf8;color:#27231c;font:inherit}
+.registro-form input:focus,.registro-form select:focus,.registro-form textarea:focus{outline:2px solid #edc46b;border-color:var(--amarillo)}
+.campo-tiempo,.detalle-field{grid-column:1/-1}
+.tiempo-controles{display:flex;gap:.55rem;align-items:center}
+.tiempo-input{display:flex;align-items:center;flex:1;max-width:240px;padding:0 .7rem;border:1px solid #d5c49f;border-radius:10px;background:#fffdf8}
+.tiempo-input input{border:0!important;outline:0!important;background:transparent!important;padding:.78rem .15rem!important;text-align:center;font-variant-numeric:tabular-nums;font-size:1.15rem}
+.tiempo-input span{font-weight:800;color:var(--amarillo)}
+.timer-button,.guardar-button{border:0!important;background:var(--naranja)!important;color:white!important;font-weight:800;cursor:pointer}
+.timer-button{padding:.78rem 1rem;border-radius:10px}
+.reset-button{padding:.78rem .95rem;border:1px solid #d5c49f;border-radius:10px;background:var(--arena-soft);color:#5b471d;font-weight:800;cursor:pointer}
+.guardar-button{grid-column:1/-1;padding:.9rem 1rem;border-radius:10px;font-size:1rem}
+.guardar-button:hover,.timer-button:hover{background:var(--naranja-dark)!important}
+.success{color:#6c7200;font-weight:700}.registro-form .error{color:#a23a16;font-weight:700}
+@media(max-width:650px){.registro-form{grid-template-columns:1fr}.tiempo-controles{flex-wrap:wrap}.tiempo-input{max-width:none;flex:1 1 100%}.timer-button{flex:1}}
+@media(prefers-color-scheme:dark){body{background:#252019}.registro-card{background:#302a21;border-color:#5d4b2c}.registro-form input,.registro-form select,.registro-form textarea,.tiempo-input{background:#26221b;color:#f5ead4;border-color:#665638}.reset-button{background:#3b3224;color:#f5ead4;border-color:#665638}}
