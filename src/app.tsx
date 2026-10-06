@@ -154,7 +154,7 @@ export function App() {
 
           {authView === 'registro' && <form onSubmit={registrar} class="login-form">
             <label>Email<input type="email" value={registroEmail} onInput={(e) => setRegistroEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
-            <label>Contraseña<input type="password" value={registroPassword} onInput={(e) => setRegistroPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="new-password" minlength="6" required /></label>
+            <label>Contraseña<input type="password" value={registroPassword} onInput={(e) => setRegistroPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="new-password" minLength={6} required /></label>
             <button type="submit" disabled={authBusy}>{authBusy ? 'Creando…' : 'Registrarme'}</button>
             {authMessage && <p class="error">{authMessage}</p>}
             <button type="button" class="link-button" onClick={() => setAuthView('login')}>Ya tengo una cuenta</button>
