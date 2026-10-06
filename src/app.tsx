@@ -75,7 +75,7 @@ export function App() {
     </nav>
     {error && <section class="card error">{error}</section>}
     {vista === 'hoy' && <Hoy cat={cat} reg={reg} onSaved={cargar} />}
-    {vista === 'balances' && <Balances reg={reg} cat={cat} periodo={periodo} setPeriodo={setPeriodo} onChanged={cargar} />}
+    {vista === 'balances' && <Balances reg={reg} cat={cat} periodo={periodo} setPeriodo={setPeriodo} onQuery={async (desde, hasta) => setReg(await cargarRegistros(desde, hasta))} onChanged={cargar} />}
     {vista === 'ajustes' && <Ajustes cat={cat} ajuste={ajuste} setAjuste={setAjuste} onChanged={cargar} />}
   </main>;
 }
@@ -134,7 +134,7 @@ function RegistroForm({ cat, onSaved }: { cat: Catalogos | null; onSaved: () => 
   </section>;
 }
 
-function Balances({ reg, cat, periodo, setPeriodo, onChanged }: { reg: Registro[]; cat: Catalogos | null; periodo: Periodo; setPeriodo: (p: Periodo) => void; onChanged: () => Promise<void> }) {
+function Balances({ reg, cat, periodo, setPeriodo, onQuery, onChanged }: { reg: Registro[]; cat: Catalogos | null; periodo: Periodo; setPeriodo: (p: Periodo) => void; onQuery: (desde:string, hasta:string) => Promise<void>; onChanged: () => Promise<void> }) {
   const hoy = fechaLocal();
   const [desde, setDesde] = useState(iso(inicioMes(new Date())));
   const [hasta, setHasta] = useState(hoy);
@@ -176,7 +176,7 @@ function Balances({ reg, cat, periodo, setPeriodo, onChanged }: { reg: Registro[
         <label>Campo<select value={campo} onChange={e => setCampo(e.currentTarget.value)}><option value="todos">Todos los campos</option><option value="fecha">Fecha</option><option value="proyecto">Proyecto</option><option value="categoria">Categoría</option><option value="cliente">Cliente</option><option value="detalle">Detalle</option><option value="tiempo">Tiempo</option></select></label>
         <label>Desde<input type="date" value={desde} onInput={e => setDesde(e.currentTarget.value)} /></label>
         <label>Hasta<input type="date" value={hasta} onInput={e => setHasta(e.currentTarget.value)} /></label>
-        <button class="secondary" onClick={() => setAplicado(v => !v)}>Aplicar consulta</button>
+        <button class="secondary" onClick={async () => { setAplicado(v => !v); await onQuery(desde, hasta); }}>Aplicar consulta</button>
       </div>
     </section>
     <section class="balance-hero"><span>Resultado</span><strong>{minutos(total)}</strong><small>{filtrados.length} registros · {desde} → {hasta}</small></section>
