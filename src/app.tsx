@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { supabase } from './lib/supabase';
 import { cargarCatalogos, cargarRegistros } from './data';
+import { Ajustes } from './settings';
 import type { Catalogos, Registro } from './types';
 
 const tiempo = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -30,7 +31,7 @@ export function App() {
   const [cat, setCat] = useState<Catalogos | null>(null);
   const [regHoy, setRegHoy] = useState<Registro[]>([]);
   const [balances, setBalances] = useState<Registro[]>([]);
-  const [vista, setVista] = useState<'hoy' | 'balances'>('hoy');
+  const [vista, setVista] = useState<'hoy' | 'balances' | 'ajustes'>('hoy');
   const [balancePreset, setBalancePreset] = useState<BalancePreset>('hoy');
   const [error, setError] = useState<string | null>(null);
   const [cargandoBalance, setCargandoBalance] = useState(false);
@@ -242,6 +243,7 @@ export function App() {
     <nav class="nav" aria-label="Navegación principal">
       <button class={vista === 'hoy' ? 'active' : ''} onClick={() => setVista('hoy')}>Hoy</button>
       <button class={vista === 'balances' ? 'active' : ''} onClick={() => { setVista('balances'); if (!balances.length) lanzarBalance('hoy'); }}>Balances</button>
+      <button class={vista === 'ajustes' ? 'active' : ''} onClick={() => setVista('ajustes')}>Ajustes</button>
       <button class="nav-exit" onClick={async () => { await supabase.auth.signOut(); }}>Salir</button>
     </nav>
     {error && <section class="card error">{error}</section>}
@@ -266,6 +268,7 @@ export function App() {
       <section class="card"><div class="section-title"><div><span class="eyebrow">DISTRIBUCIÓN</span><h2>Hoy por categoría</h2></div></div><Pie datos={datosHoy} /></section>
       <section class="card"><div class="section-title"><div><span class="eyebrow">REGISTROS DE HOY</span><h2>Editar registros</h2></div></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Proyecto</th><th>Categoría</th><th>Cliente</th><th>Minutos</th><th>Detalle</th><th></th></tr></thead><tbody>{regHoy.length ? regHoy.map(fila) : <tr><td colSpan={7} class="empty">Todavía no hay registros para hoy.</td></tr>}</tbody></table></div></section>
     </section>}
+    {vista === 'ajustes' && cat && <Ajustes catalogos={cat} onCatalogosChange={async () => setCat(await cargarCatalogos())} />}
     {vista === 'balances' && <section>
       <section class="card balance-controls">
         <div class="section-title">
