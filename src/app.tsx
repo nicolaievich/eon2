@@ -16,6 +16,7 @@ export function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginMessage, setLoginMessage] = useState<string | null>(null);
+  const [vista, setVista] = useState<'hoy' | 'registros' | 'analisis'>('hoy');
 
   useEffect(() => {
     let vivo = true;
@@ -149,19 +150,34 @@ export function App() {
   }
 
   const total = reg.reduce((s, r) => s + Number(r.tiempo_minutos || 0), 0);
+  const porProyecto = new Map<string, number>();
+  for (const r of reg) {
+    const nombre = r.proyecto?.nombre ?? 'Sin proyecto';
+    porProyecto.set(nombre, (porProyecto.get(nombre) ?? 0) + Number(r.tiempo_minutos || 0));
+  }
+  const proyectosOrdenados = [...porProyecto.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
     <main class="shell">
       <header class="topbar">
         <div>
           <b>EÓN 2.0 · ALPHA 1</b>
-          <h1>Hoy</h1>
+          <h1>{vista === 'hoy' ? 'Hoy' : vista === 'registros' ? 'Registros' : 'Análisis'}</h1>
           <p class="muted">{email}</p>
         </div>
       </header>
 
+      <nav class="nav">
+        {(['hoy', 'registros', 'analisis'] as const).map((item) => (
+          <button class={vista === item ? 'active' : ''} onClick={() => setVista(item)}>
+            {item === 'hoy' ? 'Hoy' : item === 'registros' ? 'Registros' : 'Análisis'}
+          </button>
+        ))}
+      </nav>
+
       {error && <section class="card error">{error}</section>}
 
+      {vista === 'hoy' && <>
       <section class="card hero">
         <div>
           <span class="muted">Últimos 90 días</span>
@@ -211,6 +227,47 @@ export function App() {
           </table>
         </div>
       </section>
+      </>}
+
+      {vista === 'registros' && (
+        <section class="card">
+          <b>Registros · últimos 90 días</b>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha</th><th>Proyecto</th><th>Categoría</th><th>Cliente</th><th>Detalle</th><th>Tiempo</th></tr></thead>
+              <tbody>{reg.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.fecha}</td>
+                  <td>{r.proyecto?.nombre ?? '—'}</td>
+                  <td>{r.categoria?.nombre ?? '—'}</td>
+                  <td>{r.cliente?.nombre ?? '—'}</td>
+                  <td>{r.detalle ?? '—'}</td>
+                  <td>{tiempo(r.tiempo_minutos)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {vista === 'analisis' && (
+        <>
+          <section class="card hero">
+            <div><span class="muted">Total · últimos 90 días</span><strong>{tiempo(total)}</strong></div>
+          </section>
+          <section class="card">
+            <b>Tiempo por proyecto</b>
+            <div class="bars">
+              {proyectosOrdenados.map(([nombre, minutos]) => (
+                <div class="bar-row" key={nombre}>
+                  <div class="bar-label"><span>{nombre}</span><b>{tiempo(minutos)}</b></div>
+                  <div class="bar"><span style={{ width: `${total ? Math.max(2, minutos / total * 100) : 0}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }
