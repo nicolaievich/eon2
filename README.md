@@ -2,26 +2,35 @@
 
 EÓN 1.9 queda como versión estable y no se modifica.
 
-## Estrategia inicial
+## Estado actual
 
-EÓN 2.0 se desarrolla desde cero en este repositorio y utiliza inicialmente la misma base de Supabase que 1.9 para disponer de datos reales de prueba.
+EÓN 2.0 se desarrolla exclusivamente en este repositorio. La interfaz ya incorpora:
 
-**Durante esta etapa 2.0 es solo lectura:** no realiza INSERT, UPDATE ni DELETE.
+- Registro de tiempo.
+- Balances de **Hoy, Semana y Mes**.
+- Gráficos de tiempo por proyecto y categoría.
+- Ajustes para administrar clientes, categorías y proyectos.
+- Color configurable para categorías.
+- Preact + Vite + TypeScript.
+- Consultas acotadas al período necesario en lugar de usar el balance de 90 días como vista principal.
 
-## Objetivos
+La escritura de datos está asociada al usuario autenticado mediante `user_id` y respeta las políticas RLS existentes de Supabase.
 
-- Apertura rápida y consultas en paralelo.
-- Proyectos como eje del análisis.
+## Arquitectura
+
+La capa de datos está separada de la interfaz en `src/data.ts`. Esto permite seguir optimizando consultas y reemplazar consultas de detalle por RPC de PostgreSQL cuando corresponda.
+
+Objetivos siguientes:
+
 - Caché local e IndexedDB.
 - Temporizador persistente.
 - PWA/offline.
-- Preact + CSS propio.
-- RPC de PostgreSQL para agregaciones.
+- RPC para agregaciones.
+- Validación de esquema y RLS antes de ampliar operaciones destructivas.
+- Mejoras progresivas de edición y experiencia móvil.
 
-## RPC
+## Regla de producción
 
-Una RPC será una función PostgreSQL ejecutada desde Supabase. Por ejemplo, en lugar de descargar miles de registros para sumar horas por proyecto, EÓN podrá pedir a PostgreSQL directamente los totales del período y recibir únicamente los resultados agrupados.
+**`nicolaievich/eon` es EÓN 1.9 y está congelado.**
 
-## Próximo paso
-
-Antes de crear las RPC definitivas hay que revisar el esquema SQL real de Supabase (tablas, tipos y RLS). No se ejecutan cambios de base de datos desde este repositorio todavía.
+Todo desarrollo de EÓN 2.0 se realiza en `nicolaievich/eon2`.
