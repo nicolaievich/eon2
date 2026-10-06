@@ -13,6 +13,36 @@ export async function cargarCatalogos(): Promise<Catalogos> {
   return { proyectos: proyectos.data ?? [], categorias: categorias.data ?? [], clientes: clientes.data ?? [] };
 }
 
+export async function crearCategoria(nombre: string, color: string) {
+  const { error } = await supabase.from('categorias').insert({ nombre: nombre.trim(), color: color || null });
+  if (error) throw error;
+}
+
+export async function actualizarCategoria(id: number, nombre: string, color: string) {
+  const { error } = await supabase.from('categorias').update({ nombre: nombre.trim(), color: color || null }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function crearProyecto(nombre: string, descripcion: string) {
+  const { error } = await supabase.from('proyectos').insert({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo: true });
+  if (error) throw error;
+}
+
+export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean) {
+  const { error } = await supabase.from('proyectos').update({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function crearCliente(nombre: string, contacto: string) {
+  const { error } = await supabase.from('clientes').insert({ nombre: nombre.trim(), contacto: contacto.trim() || null });
+  if (error) throw error;
+}
+
+export async function actualizarCliente(id: number, nombre: string, contacto: string) {
+  const { error } = await supabase.from('clientes').update({ nombre: nombre.trim(), contacto: contacto.trim() || null }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function cargarRegistros(desde: string, hasta?: string): Promise<Registro[]> {
   let query = supabase.from('registros')
     .select('id,fecha,proyecto_id,categoria_id,cliente_id,tiempo_minutos,detalle,proyecto:proyectos(nombre),categoria:categorias(nombre,color),cliente:clientes(nombre)')
