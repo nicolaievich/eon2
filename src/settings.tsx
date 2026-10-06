@@ -48,8 +48,9 @@ export function Ajustes({ catalogos, onCatalogosChange }: { catalogos: Catalogos
       await onCatalogosChange();
       limpiar();
       setMensaje(editando === null ? 'Creado correctamente.' : 'Cambios guardados.');
-    } catch (e) {
-      setMensaje(e instanceof Error ? e.message : 'No se pudo guardar.');
+    } catch (e: any) {
+      const detalle = e?.message || e?.details || e?.hint || 'No se pudo guardar.';
+      setMensaje(`No se pudo guardar: ${detalle}`);
     } finally { setGuardando(false); }
   };
 
