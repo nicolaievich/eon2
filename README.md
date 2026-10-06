@@ -1,36 +1,20 @@
-# EÓN 2.0 ⏳
+# EÓN 2.1 ⏳
 
 EÓN 1.9 queda como versión estable y no se modifica.
 
 ## Estado actual
 
-EÓN 2.0 se desarrolla exclusivamente en este repositorio. La interfaz ya incorpora:
+EÓN 2 se desarrolla exclusivamente en este repositorio. La interfaz 2.1 organiza el trabajo en:
 
-- Registro de tiempo.
-- Balances de **Hoy, Semana y Mes**.
-- Gráficos de tiempo por proyecto y categoría.
-- Ajustes para administrar clientes, categorías y proyectos.
-- Color configurable para categorías.
-- Preact + Vite + TypeScript.
-- Consultas acotadas al período necesario en lugar de usar el balance de 90 días como vista principal.
-
-La escritura de datos está asociada al usuario autenticado mediante `user_id` y respeta las políticas RLS existentes de Supabase.
-
-## Arquitectura
-
-La capa de datos está separada de la interfaz en `src/data.ts`. Esto permite seguir optimizando consultas y reemplazar consultas de detalle por RPC de PostgreSQL cuando corresponda.
-
-Objetivos siguientes:
-
-- Caché local e IndexedDB.
-- Temporizador persistente.
-- PWA/offline.
-- RPC para agregaciones.
-- Validación de esquema y RLS antes de ampliar operaciones destructivas.
-- Mejoras progresivas de edición y experiencia móvil.
+- **Hoy:** formulario de nuevo registro, total de horas del día, gráfico de torta por categoría y registros de hoy editables.
+- **Balances:** consultas rápidas de Hoy, Semana y Mes; búsqueda libre; filtro por campo; rango de fechas; gráfico de torta por categoría y tabla editable.
+- **Ajustes:** administración de clientes, categorías y proyectos.
+- Interfaz responsive con paleta arena, amarillo y naranja.
+- Preact + Vite + TypeScript + Supabase.
+- La capa de datos permanece separada de la interfaz para seguir optimizando consultas y poder incorporar RPC cuando corresponda.
 
 ## Regla de producción
 
 **`nicolaievich/eon` es EÓN 1.9 y está congelado.**
 
-Todo desarrollo de EÓN 2.0 se realiza en `nicolaievich/eon2`.
+Todo desarrollo de EÓN 2 se realiza en `nicolaievich/eon2`.
