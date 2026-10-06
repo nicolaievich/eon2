@@ -16,6 +16,12 @@ export function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginMessage, setLoginMessage] = useState<string | null>(null);
+  const [authView, setAuthView] = useState<'login' | 'registro' | 'recuperar' | 'enviado' | 'confirmar'>('login');
+  const [registroEmail, setRegistroEmail] = useState('');
+  const [registroPassword, setRegistroPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [vista, setVista] = useState<'hoy' | 'registros' | 'analisis'>('hoy');
 
   useEffect(() => {
@@ -106,42 +112,70 @@ export function App() {
   }
 
   if (!email) {
+    const titulo = authView === 'login' ? 'Ingresar' : authView === 'registro' ? 'Crear cuenta' : authView === 'recuperar' ? 'Recuperar contraseña' : authView === 'enviado' ? 'Revisá tu correo' : 'Confirmá tu correo';
+
+    const registrar = async (event: Event) => {
+      event.preventDefault(); setAuthBusy(true); setAuthMessage(null);
+      const { error } = await supabase.auth.signUp({ email: registroEmail.trim(), password: registroPassword });
+      setAuthBusy(false);
+      if (error) setAuthMessage(error.message);
+      else setAuthView('confirmar');
+    };
+
+    const recuperar = async (event: Event) => {
+      event.preventDefault(); setAuthBusy(true); setAuthMessage(null);
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), { redirectTo: window.location.origin });
+      setAuthBusy(false);
+      if (error) setAuthMessage(error.message);
+      else setAuthView('enviado');
+    };
+
+    const entrar = async (event: Event) => {
+      event.preventDefault(); setLoginBusy(true); setLoginMessage(null); setError(null);
+      const { error: authError } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
+      if (authError) setLoginMessage(authError.message);
+      setLoginBusy(false);
+    };
+
     return (
-      <main class="shell narrow">
-        <section class="card">
+      <main class="shell narrow auth-shell">
+        <section class="card auth-card">
           <b>EÓN 2.0 · ALPHA</b>
-          <h1>Registro de Tiempos</h1>
-          <p class="muted">Nueva generación de EÓN. Esta versión trabaja inicialmente en modo de solo lectura.</p>
+          <h1>{titulo}</h1>
 
-          <form onSubmit={entrar} class="login-form">
-            <label>
-              Email
-              <input
-                type="email"
-                value={loginEmail}
-                onInput={(e) => setLoginEmail((e.currentTarget as HTMLInputElement).value)}
-                autocomplete="email"
-                required
-              />
-            </label>
-
-            <label>
-              Contraseña
-              <input
-                type="password"
-                value={loginPassword}
-                onInput={(e) => setLoginPassword((e.currentTarget as HTMLInputElement).value)}
-                autocomplete="current-password"
-                required
-              />
-            </label>
-
-            <button type="submit" disabled={loginBusy}>
-              {loginBusy ? 'Ingresando…' : 'Ingresar'}
-            </button>
-
+          {authView === 'login' && <form onSubmit={entrar} class="login-form">
+            <label>Email<input type="email" value={loginEmail} onInput={(e) => setLoginEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
+            <label>Contraseña<input type="password" value={loginPassword} onInput={(e) => setLoginPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="current-password" required /></label>
+            <button type="submit" disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
             {loginMessage && <p class="error">{loginMessage}</p>}
-          </form>
+            <button type="button" class="secondary" onClick={() => {setAuthMessage(null);setAuthView('registro')}}>Crear una cuenta</button>
+            <button type="button" class="link-button" onClick={() => {setAuthMessage(null);setAuthView('recuperar')}}>¿Olvidaste tu contraseña?</button>
+          </form>}
+
+          {authView === 'registro' && <form onSubmit={registrar} class="login-form">
+            <label>Email<input type="email" value={registroEmail} onInput={(e) => setRegistroEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
+            <label>Contraseña<input type="password" value={registroPassword} onInput={(e) => setRegistroPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="new-password" minlength="6" required /></label>
+            <button type="submit" disabled={authBusy}>{authBusy ? 'Creando…' : 'Registrarme'}</button>
+            {authMessage && <p class="error">{authMessage}</p>}
+            <button type="button" class="link-button" onClick={() => setAuthView('login')}>Ya tengo una cuenta</button>
+          </form>}
+
+          {authView === 'recuperar' && <form onSubmit={recuperar} class="login-form">
+            <label>Email<input type="email" value={resetEmail} onInput={(e) => setResetEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
+            <button type="submit" disabled={authBusy}>{authBusy ? 'Enviando…' : 'Enviar enlace de recuperación'}</button>
+            {authMessage && <p class="error">{authMessage}</p>}
+            <button type="button" class="link-button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
+          </form>}
+
+          {authView === 'enviado' && <div class="auth-message">
+            <p>Si existe una cuenta con ese correo, recibirás un enlace para restablecer la contraseña.</p>
+            <button type="button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
+          </div>}
+
+          {authView === 'confirmar' && <div class="auth-message">
+            <p>Te enviamos un correo de confirmación. Abrí el enlace del mensaje para activar tu cuenta.</p>
+            <button type="button" onClick={() => setAuthView('login')}>Volver a ingresar</button>
+          </div>}
 
           <p class="muted small">EÓN 1.9 continúa siendo la versión estable y no se modifica.</p>
         </section>
