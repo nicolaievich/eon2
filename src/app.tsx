@@ -171,11 +171,24 @@ export function App() {
     const { error: updateError } = await supabase.from('registros').update(patch).eq('id', r.id);
     if (updateError) setError(`No se pudo guardar el registro: ${updateError.message}`);
     else {
-      const actualizar = (lista: Registro[]) => lista.map(x => x.id === r.id ? { ...x, ...patch,
-        proyecto: campo === 'proyecto_id' ? (cat?.proyectos.find(p => p.id === Number(valor)) ? { nombre: cat.proyectos.find(p => p.id === Number(valor))!.nombre } : null) : x.proyecto,
-        categoria: campo === 'categoria_id' ? (cat?.categorias.find(c => c.id === Number(valor)) ? { nombre: cat.categorias.find(c => c.id === Number(valor))!.nombre } : x.categoria),
-        cliente: campo === 'cliente_id' ? (cat?.clientes.find(c => c.id === Number(valor)) ? { nombre: cat.clientes.find(c => c.id === Number(valor))!.nombre } : null) : x.cliente
-      } as Registro : x);
+      const actualizar = (lista: Registro[]) =>
+        lista.map(x => {
+          if (x.id !== r.id) return x;
+          const next = { ...x, ...patch } as Registro;
+          if (campo === 'proyecto_id') {
+            const item = cat?.proyectos.find(p => p.id === Number(valor));
+            next.proyecto = item ? { nombre: item.nombre } : null;
+          }
+          if (campo === 'categoria_id') {
+            const item = cat?.categorias.find(c => c.id === Number(valor));
+            next.categoria = item ? { nombre: item.nombre } : x.categoria;
+          }
+          if (campo === 'cliente_id') {
+            const item = cat?.clientes.find(c => c.id === Number(valor));
+            next.cliente = item ? { nombre: item.nombre } : null;
+          }
+          return next;
+        });
       setRegHoy(actualizar); setBalances(actualizar);
     }
     setGuardando(null);
@@ -211,7 +224,7 @@ export function App() {
           <label>Proyecto<input list="proyectos-lista" value={proyecto} onInput={e => setProyecto((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar proyecto..." /><datalist id="proyectos-lista">{cat?.proyectos.map(p => <option value={p.nombre} key={p.id} />)}</datalist></label>
           <label>Categoría<select value={categoria} onChange={e => setCategoria((e.currentTarget as HTMLSelectElement).value)} required><option value="">Seleccionar categoría...</option>{cat?.categorias.map(c => <option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label>
           <label>Cliente<input list="clientes-lista" value={cliente} onInput={e => setCliente((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar cliente..." /><datalist id="clientes-lista">{cat?.clientes.map(c => <option value={c.nombre} key={c.id} />)}</datalist></label>
-          <label class="campo-tiempo">Tiempo (HH:MM)<div class="tiempo-controles"><div class="tiempo-input"><input inputMode="numeric" maxLength={2} value={horas} onInput={e => setHoras((e.currentTarget as HTMLInputElement).value.replace(/\\D/g,'').slice(0,2))} /><span>:</span><input inputMode="numeric" maxLength={2} value={minutos} onInput={e => setMinutos((e.currentTarget as HTMLInputElement).value.replace(/\\D/g,'').slice(0,2))} /></div></div></label>
+          <label class="campo-tiempo">Tiempo (HH:MM)<div class="tiempo-controles"><div class="tiempo-input"><input inputMode="numeric" maxLength={2} value={horas} onInput={e => setHoras((e.currentTarget as HTMLInputElement).value.replace(/\D/g,'').slice(0,2))} /><span>:</span><input inputMode="numeric" maxLength={2} value={minutos} onInput={e => setMinutos((e.currentTarget as HTMLInputElement).value.replace(/\D/g,'').slice(0,2))} /></div></div></label>
           <label class="detalle-field">Detalle<textarea rows={3} value={detalle} onInput={e => setDetalle((e.currentTarget as HTMLTextAreaElement).value)} placeholder="¿Qué hiciste? (opcional)" /></label>
           <button class="guardar-button" disabled={guardandoNuevo}>{guardandoNuevo ? 'Guardando…' : 'Guardar registro'}</button>
           {mensaje && <p class={mensaje.startsWith('Registro') ? 'success' : 'error'}>{mensaje}</p>}
