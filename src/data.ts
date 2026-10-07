@@ -57,13 +57,14 @@ export async function actualizarCategoria(id: number, nombre: string, color: str
 
 export async function crearProyecto(nombre: string, descripcion: string, color = '#ed7622') {
   const userId = await usuarioActualId();
-  const { error } = await supabase.from('proyectos').insert({
+  const { data: creado, error } = await supabase.from('proyectos').insert({
     user_id: userId,
     nombre: nombre.trim(),
     descripcion: descripcion.trim() || null,
     activo: true
-  });
+  }).select('id').single();
   if (error) throw error;
+  if (creado) { const p = leerPreferencias(userId); p.colores[colorClave('proyecto', creado.id)] = color; escribirPreferencias(userId, p); }
 }
 
 export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean, color = '#ed7622') {
@@ -79,14 +80,13 @@ export async function actualizarProyecto(id: number, nombre: string, descripcion
 
 export async function crearCliente(nombre: string, contacto: string, color = '#d7a514') {
   const userId = await usuarioActualId();
-  const { error } = await supabase.from('clientes').insert({
+  const { data: creado, error } = await supabase.from('clientes').insert({
     user_id: userId,
     nombre: nombre.trim(),
     contacto: contacto.trim() || null
-  });
+  }).select('id').single();
   if (error) throw error;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) { const rows = await supabase.from('proyectos').select('id').eq('user_id', user.id).eq('nombre', nombre.trim()).limit(1); const id = rows.data?.[0]?.id; if (id) { const p = leerPreferencias(user.id); p.colores[colorClave('proyecto', id)] = color; escribirPreferencias(user.id, p); } }
+  if (creado) { const p = leerPreferencias(userId); p.colores[colorClave('cliente', creado.id)] = color; escribirPreferencias(userId, p); }
 }
 
 export async function actualizarCliente(id: number, nombre: string, contacto: string, color = '#d7a514') {
