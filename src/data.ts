@@ -1,5 +1,18 @@
 import { supabase } from './lib/supabase';
-import type { Catalogos, Registro } from './types';
+import type { Catalogos, Preferencias, Registro } from './types';
+
+const PREFERENCIAS_KEY = 'eon2-preferencias';
+const colorClave = (tipo: 'categoria'|'proyecto'|'cliente', id: number) => `${tipo}:${id}`;
+const preferenciasBase = (): Preferencias => ({ categoriaId: null, proyectoId: null, clienteId: null, colores: {} });
+
+function leerPreferencias(userId: string): Preferencias {
+  try { return { ...preferenciasBase(), ...(JSON.parse(localStorage.getItem(`${PREFERENCIAS_KEY}:${userId}`) || '{}')) }; }
+  catch { return preferenciasBase(); }
+}
+
+function escribirPreferencias(userId: string, preferencias: Preferencias) {
+  localStorage.setItem(`${PREFERENCIAS_KEY}:${userId}`, JSON.stringify(preferencias));
+}
 
 async function usuarioActualId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,7 +30,10 @@ export async function cargarCatalogos(): Promise<Catalogos> {
   if (proyectos.error) throw proyectos.error;
   if (categorias.error) throw categorias.error;
   if (clientes.error) throw clientes.error;
-  return { proyectos: proyectos.data ?? [], categorias: categorias.data ?? [], clientes: clientes.data ?? [] };
+  const preferencias = leerPreferencias(userId);
+  const proyectosData = (proyectos.data ?? []).map(p => ({ ...p, color: preferencias.colores[colorClave('proyecto', p.id)] || '#ed7622' }));
+  const clientesData = (clientes.data ?? []).map(c => ({ ...c, color: preferencias.colores[colorClave('cliente', c.id)] || '#d7a514' }));
+  return { proyectos: proyectosData, categorias: categorias.data ?? [], clientes: clientesData };
 }
 
 export async function crearCategoria(nombre: string, color: string) {
@@ -39,7 +55,7 @@ export async function actualizarCategoria(id: number, nombre: string, color: str
   if (error) throw error;
 }
 
-export async function crearProyecto(nombre: string, descripcion: string) {
+export async function crearProyecto(nombre: string, descripcion: string, color = '#ed7622') {
   const userId = await usuarioActualId();
   const { error } = await supabase.from('proyectos').insert({
     user_id: userId,
@@ -50,16 +66,18 @@ export async function crearProyecto(nombre: string, descripcion: string) {
   if (error) throw error;
 }
 
-export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean) {
+export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean, color = '#ed7622') {
   const userId = await usuarioActualId();
   const { error } = await supabase.from('proyectos')
     .update({ nombre: nombre.trim(), descripcion: descripcion.trim() || null, activo })
     .eq('id', id)
     .eq('user_id', userId);
   if (error) throw error;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) { const p = leerPreferencias(user.id); p.colores[colorClave('proyecto', id)] = color; escribirPreferencias(user.id, p); }
 }
 
-export async function crearCliente(nombre: string, contacto: string) {
+export async function crearCliente(nombre: string, contacto: string, color = '#d7a514') {
   const userId = await usuarioActualId();
   const { error } = await supabase.from('clientes').insert({
     user_id: userId,
@@ -67,15 +85,19 @@ export async function crearCliente(nombre: string, contacto: string) {
     contacto: contacto.trim() || null
   });
   if (error) throw error;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) { const rows = await supabase.from('proyectos').select('id').eq('user_id', user.id).eq('nombre', nombre.trim()).limit(1); const id = rows.data?.[0]?.id; if (id) { const p = leerPreferencias(user.id); p.colores[colorClave('proyecto', id)] = color; escribirPreferencias(user.id, p); } }
 }
 
-export async function actualizarCliente(id: number, nombre: string, contacto: string) {
+export async function actualizarCliente(id: number, nombre: string, contacto: string, color = '#d7a514') {
   const userId = await usuarioActualId();
   const { error } = await supabase.from('clientes')
     .update({ nombre: nombre.trim(), contacto: contacto.trim() || null })
     .eq('id', id)
     .eq('user_id', userId);
   if (error) throw error;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) { const p = leerPreferencias(user.id); p.colores[colorClave('cliente', id)] = color; escribirPreferencias(user.id, p); }
 }
 
 export async function cargarRegistros(desde: string, hasta?: string): Promise<Registro[]> {
@@ -91,4 +113,24 @@ export async function cargarRegistros(desde: string, hasta?: string): Promise<Re
     categoria: Array.isArray(row.categoria) ? (row.categoria[0] ?? null) : row.categoria,
     cliente: Array.isArray(row.cliente) ? (row.cliente[0] ?? null) : row.cliente
   })) as Registro[];
+}
+
+
+export async function cargarPreferencias(): Promise<Preferencias> {
+  const userId = await usuarioActualId();
+  return leerPreferencias(userId);
+}
+
+export async function guardarPreferencias(parcial: Partial<Preferencias>) {
+  const userId = await usuarioActualId();
+  const actuales = leerPreferencias(userId);
+  const nuevas = { ...actuales, ...parcial, colores: { ...actuales.colores, ...(parcial.colores || {}) } };
+  escribirPreferencias(userId, nuevas);
+}
+
+export async function guardarColor(tipo: 'categoria'|'proyecto'|'cliente', id: number, color: string) {
+  const userId = await usuarioActualId();
+  const p = leerPreferencias(userId);
+  p.colores[colorClave(tipo, id)] = color;
+  escribirPreferencias(userId, p);
 }
