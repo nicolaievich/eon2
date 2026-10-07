@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { supabase } from './lib/supabase';
-import { cargarCatalogos, cargarRegistros } from './data';
+import { cargarCatalogos, cargarRegistros, cargarPreferencias } from './data';
 import { Ajustes } from './settings';
 import type { Catalogos, Registro } from './types';
 
@@ -11,17 +11,17 @@ const inicioMes = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() 
 
 type BalancePreset = 'hoy' | 'semana' | 'mes';
 
-function Pie({ datos }: { datos: { nombre: string; minutos: number }[] }) {
+function Pie({ datos }: { datos: { nombre: string; minutos: number; color?: string }[] }) {
   const total = datos.reduce((s, x) => s + x.minutos, 0);
   let acumulado = 0;
   const colores = ['#ed7622','#d7a514','#65751b','#b98500','#c95d10','#8b7a42','#e39b3f','#9c8f68'];
   const stops = datos.length ? datos.map((x, i) => {
     const ini = acumulado / total * 100; acumulado += x.minutos;
-    return `${colores[i % colores.length]} ${ini}% ${acumulado / total * 100}%`;
+    return `${x.color || colores[i % colores.length]} ${ini}% ${acumulado / total * 100}%`;
   }).join(', ') : '#e1d1b1 0 100%';
   return <div class="pie-layout">
     <div class="pie" style={{ background: `conic-gradient(${stops})` }} aria-label="Distribución por categoría" />
-    <div class="legend">{datos.map((x, i) => <div class="legend-row" key={x.nombre}><span class="legend-dot" style={{ background: colores[i % colores.length] }} /><span>{x.nombre}</span><b>{tiempo(x.minutos)}</b></div>)}</div>
+    <div class="legend">{datos.map((x, i) => <div class="legend-row" key={x.nombre}><span class="legend-dot" style={{ background: x.color || colores[i % colores.length] }} /><span>{x.nombre}</span><b>{tiempo(x.minutos)}</b></div>)}</div>
   </div>;
 }
 
@@ -74,6 +74,10 @@ export function App() {
       const hoy = fechaLocal();
       const registros = await cargarRegistros(hoy, hoy);
       setCat(catalogos);
+      const preferencias = await cargarPreferencias();
+      setCategoria(preferencias.categoriaId ? String(preferencias.categoriaId) : '');
+      setProyecto(catalogos.proyectos.find(p => p.id === preferencias.proyectoId)?.nombre || '');
+      setCliente(catalogos.clientes.find(c => c.id === preferencias.clienteId)?.nombre || '');
       setRegHoy(registros);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los datos.');
@@ -133,7 +137,7 @@ export function App() {
       tiempo_minutos: totalMinutos, detalle: detalle.trim() || null, user_id: user.id
     });
     if (insertError) setMensaje(`Error: ${insertError.message}`);
-    else { setError(null); setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); setProyecto(''); setCategoria(''); setCliente(''); if (fecha === fechaLocal()) await recargarHoy(); }
+    else { setError(null); setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); if (cat) { const p = await cargarPreferencias(); setCategoria(p.categoriaId ? String(p.categoriaId) : ''); setProyecto(cat.proyectos.find(x => x.id === p.proyectoId)?.nombre || ''); setCliente(cat.clientes.find(x => x.id === p.clienteId)?.nombre || ''); } if (fecha === fechaLocal()) await recargarHoy(); }
     setGuardandoNuevo(false);
   };
 
@@ -173,13 +177,13 @@ export function App() {
   const datosHoy = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const r of regHoy) { const n = r.categoria?.nombre ?? 'Sin categoría'; mapa.set(n, (mapa.get(n) ?? 0) + Number(r.tiempo_minutos)); }
-    return [...mapa.entries()].map(([nombre, minutos]) => ({ nombre, minutos })).sort((a,b) => b.minutos-a.minutos);
+    return [...mapa.entries()].map(([nombre, minutos]) => { const item = cat?.categorias.find(c => c.nombre === nombre); return { nombre, minutos, color: item?.color || undefined }; }).sort((a,b) => b.minutos-a.minutos);
   }, [regHoy]);
 
   const datosBalance = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const r of filtrados) { const n = r.categoria?.nombre ?? 'Sin categoría'; mapa.set(n, (mapa.get(n) ?? 0) + Number(r.tiempo_minutos)); }
-    return [...mapa.entries()].map(([nombre, minutos]) => ({ nombre, minutos })).sort((a,b) => b.minutos-a.minutos);
+    return [...mapa.entries()].map(([nombre, minutos]) => { const item = cat?.categorias.find(c => c.nombre === nombre); return { nombre, minutos, color: item?.color || undefined }; }).sort((a,b) => b.minutos-a.minutos);
   }, [filtrados]);
 
   const totalHoy = regHoy.reduce((s,r) => s + Number(r.tiempo_minutos), 0);
