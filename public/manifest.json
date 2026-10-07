@@ -1,0 +1,19 @@
+{
+  "name": "EÓN — Registro de tiempos",
+  "short_name": "EÓN",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e8d8b8",
+  "theme_color": "#d97706",
+  "description": "Registro y análisis de tiempos de EÓN.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
