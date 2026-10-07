@@ -1,12 +1,17 @@
 # EÓN 2.0 ⏳
 
+**Versión actual: 2.1.0-alpha.2**
+
 EÓN 1.9 queda como versión estable y no se modifica.
+
+## Historial reciente
+
+- **2.1.0-alpha.2** — Corrección de valores por defecto: se sincronizan con la cuenta de Supabase y dejan de depender exclusivamente del navegador.
+- **2.1.0-alpha.1** — Formulario de registro, balances, ajustes, valores por defecto y recuperación ante fallos iniciales de carga.
 
 ## Estrategia inicial
 
 EÓN 2.0 se desarrolla desde cero en este repositorio y utiliza inicialmente la misma base de Supabase que 1.9 para disponer de datos reales de prueba.
-
-**Durante esta etapa 2.0 es solo lectura:** no realiza INSERT, UPDATE ni DELETE.
 
 ## Objetivos
 
