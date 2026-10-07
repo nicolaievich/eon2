@@ -186,3 +186,12 @@ tbody tr:hover td{background:#fff8e9}
 .session-email{display:block;padding:.35rem .45rem .65rem;color:#59482d;font-size:.82rem;overflow-wrap:anywhere}
 .session-logout{width:100%;min-height:40px;border:0;border-radius:9px;background:#f6ecd9;color:var(--naranja-dark);font-weight:800}
 .session-logout:hover{background:#fae3d6}
+
+
+/* Valores por defecto */
+.defaults-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.85rem;align-items:end}
+.defaults-grid label{display:grid;gap:.45rem;font-weight:750;color:#4b3d28}
+.defaults-grid select{width:100%;min-height:48px;padding:.78rem .9rem;border:2px solid #d8c7a6;border-radius:12px;background:var(--surface-strong);color:#30281d}
+.defaults-grid select:focus{outline:0;border-color:var(--amarillo);box-shadow:0 0 0 4px rgba(215,165,20,.17)}
+.defaults-grid .guardar-button{grid-column:1/-1}
+@media(max-width:700px){.defaults-grid{grid-template-columns:1fr}}
