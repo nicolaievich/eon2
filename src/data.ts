@@ -6,12 +6,26 @@ const colorClave = (tipo: 'categoria'|'proyecto'|'cliente', id: number) => `${ti
 const preferenciasBase = (): Preferencias => ({ categoriaId: null, proyectoId: null, clienteId: null, colores: {} });
 
 function leerPreferencias(userId: string): Preferencias {
-  try { return { ...preferenciasBase(), ...(JSON.parse(localStorage.getItem(`${PREFERENCIAS_KEY}:${userId}`) || '{}')) }; }
+  try { return { ...preferenciasBase(), ...(JSON.parse(localStorage.getItem(PREFERENCIAS_KEY + ':' + userId) || '{}')) }; }
   catch { return preferenciasBase(); }
 }
 
-function escribirPreferencias(userId: string, preferencias: Preferencias) {
-  localStorage.setItem(`${PREFERENCIAS_KEY}:${userId}`, JSON.stringify(preferencias));
+async function cargarPreferenciasCuenta(userId: string): Promise<Preferencias> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) return cargarPreferenciasCuenta(userId);
+  const remotas = user.user_metadata?.eon2_preferencias;
+  if (remotas && typeof remotas === 'object') {
+    const preferencias = { ...preferenciasBase(), ...remotas, colores: { ...((remotas as any).colores || {}) } };
+    localStorage.setItem(PREFERENCIAS_KEY + ':' + userId, JSON.stringify(preferencias));
+    return preferencias;
+  }
+  return leerPreferencias(userId);
+}
+
+async function escribirPreferencias(userId: string, preferencias: Preferencias) {
+  localStorage.setItem(PREFERENCIAS_KEY + ':' + userId, JSON.stringify(preferencias));
+  const { error } = await supabase.auth.updateUser({ data: { eon2_preferencias: preferencias } });
+  if (error) throw error;
 }
 
 async function usuarioActualId(): Promise<string> {
@@ -30,7 +44,7 @@ export async function cargarCatalogos(): Promise<Catalogos> {
   if (proyectos.error) throw proyectos.error;
   if (categorias.error) throw categorias.error;
   if (clientes.error) throw clientes.error;
-  const preferencias = leerPreferencias(userId);
+  const preferencias = await cargarPreferenciasCuenta(userId);
   const proyectosData = (proyectos.data ?? []).map(p => ({ ...p, color: preferencias.colores[colorClave('proyecto', p.id)] || '#ed7622' }));
   const clientesData = (clientes.data ?? []).map(c => ({ ...c, color: preferencias.colores[colorClave('cliente', c.id)] || '#d7a514' }));
   return { proyectos: proyectosData, categorias: categorias.data ?? [], clientes: clientesData };
@@ -64,7 +78,7 @@ export async function crearProyecto(nombre: string, descripcion: string, color =
     activo: true
   }).select('id').single();
   if (error) throw error;
-  if (creado) { const p = leerPreferencias(userId); p.colores[colorClave('proyecto', creado.id)] = color; escribirPreferencias(userId, p); }
+  if (creado) { const p = await cargarPreferenciasCuenta(userId); p.colores[colorClave('proyecto', creado.id)] = color; await await escribirPreferencias(userId, p); }
 }
 
 export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean, color = '#ed7622') {
@@ -75,7 +89,7 @@ export async function actualizarProyecto(id: number, nombre: string, descripcion
     .eq('user_id', userId);
   if (error) throw error;
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) { const p = leerPreferencias(user.id); p.colores[colorClave('proyecto', id)] = color; escribirPreferencias(user.id, p); }
+  if (user) { const p = await cargarPreferenciasCuenta(user.id); p.colores[colorClave('proyecto', id)] = color; await escribirPreferencias(user.id, p); }
 }
 
 export async function crearCliente(nombre: string, contacto: string, color = '#d7a514') {
@@ -86,7 +100,7 @@ export async function crearCliente(nombre: string, contacto: string, color = '#d
     contacto: contacto.trim() || null
   }).select('id').single();
   if (error) throw error;
-  if (creado) { const p = leerPreferencias(userId); p.colores[colorClave('cliente', creado.id)] = color; escribirPreferencias(userId, p); }
+  if (creado) { const p = await cargarPreferenciasCuenta(userId); p.colores[colorClave('cliente', creado.id)] = color; await escribirPreferencias(userId, p); }
 }
 
 export async function actualizarCliente(id: number, nombre: string, contacto: string, color = '#d7a514') {
@@ -97,7 +111,7 @@ export async function actualizarCliente(id: number, nombre: string, contacto: st
     .eq('user_id', userId);
   if (error) throw error;
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) { const p = leerPreferencias(user.id); p.colores[colorClave('cliente', id)] = color; escribirPreferencias(user.id, p); }
+  if (user) { const p = await cargarPreferenciasCuenta(user.id); p.colores[colorClave('cliente', id)] = color; await escribirPreferencias(user.id, p); }
 }
 
 export async function cargarRegistros(desde: string, hasta?: string): Promise<Registro[]> {
@@ -123,14 +137,14 @@ export async function cargarPreferencias(): Promise<Preferencias> {
 
 export async function guardarPreferencias(parcial: Partial<Preferencias>) {
   const userId = await usuarioActualId();
-  const actuales = leerPreferencias(userId);
+  const actuales = await cargarPreferenciasCuenta(userId);
   const nuevas = { ...actuales, ...parcial, colores: { ...actuales.colores, ...(parcial.colores || {}) } };
-  escribirPreferencias(userId, nuevas);
+  await escribirPreferencias(userId, nuevas);
 }
 
 export async function guardarColor(tipo: 'categoria'|'proyecto'|'cliente', id: number, color: string) {
   const userId = await usuarioActualId();
-  const p = leerPreferencias(userId);
+  const p = await cargarPreferenciasCuenta(userId);
   p.colores[colorClave(tipo, id)] = color;
   escribirPreferencias(userId, p);
 }
