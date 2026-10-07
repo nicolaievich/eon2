@@ -27,6 +27,7 @@ function Pie({ datos }: { datos: { nombre: string; minutos: number; color?: stri
 
 export function App() {
   const [iniciando, setIniciando] = useState(true);
+  const [reintento, setReintento] = useState(0);
   const [email, setEmail] = useState<string | null>(null);
   const [cat, setCat] = useState<Catalogos | null>(null);
   const [regHoy, setRegHoy] = useState<Registro[]>([]);
@@ -81,6 +82,7 @@ export function App() {
       setRegHoy(registros);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los datos.');
+      throw e;
     }
   };
 
@@ -89,7 +91,13 @@ export function App() {
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (vivo) await cargarInicio(session?.user.email ?? null);
+        if (vivo) {
+          try {
+            await cargarInicio(session?.user.email ?? null);
+          } catch {
+            if (vivo) setTimeout(() => setReintento(v => v + 1), 2500);
+          }
+        }
       } finally {
         if (vivo) setIniciando(false);
       }
@@ -106,7 +114,7 @@ export function App() {
       }
     });
     return () => { vivo = false; data.subscription.unsubscribe(); };
-  }, []);
+  }, [reintento]);
 
   const entrar = async (event: Event) => {
     event.preventDefault(); setLoginBusy(true); setLoginMessage(null);
@@ -224,7 +232,7 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.1</span></div><h1>Registro de Tiempos</h1><p class="muted">Iniciando aplicación…</p></section></main>;
+  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.1</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
   if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.1</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
     <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
