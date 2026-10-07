@@ -12,7 +12,7 @@ function leerPreferencias(userId: string): Preferencias {
 
 async function cargarPreferenciasCuenta(userId: string): Promise<Preferencias> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.id !== userId) return cargarPreferenciasCuenta(userId);
+  if (!user || user.id !== userId) return leerPreferencias(userId);
   const remotas = user.user_metadata?.eon2_preferencias;
   if (remotas && typeof remotas === 'object') {
     const preferencias = { ...preferenciasBase(), ...remotas, colores: { ...((remotas as any).colores || {}) } };
@@ -78,7 +78,7 @@ export async function crearProyecto(nombre: string, descripcion: string, color =
     activo: true
   }).select('id').single();
   if (error) throw error;
-  if (creado) { const p = await cargarPreferenciasCuenta(userId); p.colores[colorClave('proyecto', creado.id)] = color; await await escribirPreferencias(userId, p); }
+  if (creado) { const p = await cargarPreferenciasCuenta(userId); p.colores[colorClave('proyecto', creado.id)] = color; await escribirPreferencias(userId, p); }
 }
 
 export async function actualizarProyecto(id: number, nombre: string, descripcion: string, activo: boolean, color = '#ed7622') {
@@ -132,7 +132,7 @@ export async function cargarRegistros(desde: string, hasta?: string): Promise<Re
 
 export async function cargarPreferencias(): Promise<Preferencias> {
   const userId = await usuarioActualId();
-  return leerPreferencias(userId);
+  return cargarPreferenciasCuenta(userId);
 }
 
 export async function guardarPreferencias(parcial: Partial<Preferencias>) {
@@ -146,5 +146,5 @@ export async function guardarColor(tipo: 'categoria'|'proyecto'|'cliente', id: n
   const userId = await usuarioActualId();
   const p = await cargarPreferenciasCuenta(userId);
   p.colores[colorClave(tipo, id)] = color;
-  escribirPreferencias(userId, p);
+  await escribirPreferencias(userId, p);
 }
