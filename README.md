@@ -6,6 +6,8 @@ EÓN 1.9 queda como versión estable y no se modifica.
 
 ## Historial reciente
 
+- **2.1.0-alpha.4** — Temporizador en el formulario de registro con iniciar, pausar y detener; actualiza el campo HH:MM y conserva el estado al recargar.
+
 - **2.1.0-alpha.3** — Encabezado móvil más austero: logo reducido, nombre centrado, versión discreta y menor altura/padding.
 
 - **2.1.0-alpha.3** — Corrección de valores por defecto: se sincronizan con la cuenta de Supabase y dejan de depender exclusivamente del navegador.
