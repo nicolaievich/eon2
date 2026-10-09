@@ -10,6 +10,18 @@ const inicioSemana = (d = new Date()) => { const r = new Date(d); const dia = r.
 const inicioMes = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 
 type BalancePreset = 'hoy' | 'semana' | 'mes';
+type EstadoTemporizador = { elapsedMs: number; startedAt: number | null; running: boolean };
+const TIMER_KEY = 'eon2-temporizador-v1';
+const leerTemporizador = (): EstadoTemporizador => {
+  try {
+    const guardado = localStorage.getItem(TIMER_KEY);
+    if (guardado) {
+      const valor = JSON.parse(guardado) as EstadoTemporizador;
+      if (Number.isFinite(valor.elapsedMs) && typeof valor.running === 'boolean') return valor;
+    }
+  } catch { /* Si el almacenamiento no está disponible, se inicia en cero. */ }
+  return { elapsedMs: 0, startedAt: null, running: false };
+};
 
 function Pie({ datos }: { datos: { nombre: string; minutos: number; color?: string }[] }) {
   const total = datos.reduce((s, x) => s + x.minutos, 0);
@@ -60,6 +72,67 @@ export function App() {
   const [minutos, setMinutos] = useState('00');
   const [detalle, setDetalle] = useState('');
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
+  const [temporizador, setTemporizador] = useState<EstadoTemporizador>(leerTemporizador);
+  const [ahora, setAhora] = useState(Date.now());
+
+  const milisegundosTemporizador = temporizador.elapsedMs +
+    (temporizador.running && temporizador.startedAt ? Math.max(0, ahora - temporizador.startedAt) : 0);
+  const minutosTemporizador = Math.floor(milisegundosTemporizador / 60000);
+  const mostrarTiempoTemporizador = (minutos: number) =>
+    `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
+
+  useEffect(() => {
+    try { localStorage.setItem(TIMER_KEY, JSON.stringify(temporizador)); } catch { /* El reloj sigue funcionando sin persistencia. */ }
+  }, [temporizador]);
+
+  useEffect(() => {
+    if (!temporizador.running) return;
+    const intervalo = window.setInterval(() => setAhora(Date.now()), 1000);
+    return () => window.clearInterval(intervalo);
+  }, [temporizador.running, temporizador.startedAt]);
+
+  useEffect(() => {
+    if (!temporizador.running) return;
+    setHoras(String(Math.floor(minutosTemporizador / 60)).padStart(2, '0'));
+    setMinutos(String(minutosTemporizador % 60).padStart(2, '0'));
+  }, [temporizador.running, minutosTemporizador]);
+
+  const iniciarTemporizador = () => {
+    if (temporizador.running) return;
+    const baseMs = temporizador.elapsedMs || ((Number(horas) || 0) * 60 + (Number(minutos) || 0)) * 60000;
+    setAhora(Date.now());
+    setTemporizador({ elapsedMs: baseMs, startedAt: Date.now(), running: true });
+    setMensaje(null);
+  };
+
+  const pausarTemporizador = () => {
+    if (!temporizador.running || !temporizador.startedAt) return;
+    const elapsedMs = temporizador.elapsedMs + Math.max(0, Date.now() - temporizador.startedAt);
+    setTemporizador({ elapsedMs, startedAt: null, running: false });
+    const total = Math.floor(elapsedMs / 60000);
+    setHoras(String(Math.floor(total / 60)).padStart(2, '0'));
+    setMinutos(String(total % 60).padStart(2, '0'));
+  };
+
+  const detenerTemporizador = () => {
+    const elapsedMs = temporizador.elapsedMs +
+      (temporizador.running && temporizador.startedAt ? Math.max(0, Date.now() - temporizador.startedAt) : 0);
+    const total = Math.floor(elapsedMs / 60000);
+    setHoras(String(Math.floor(total / 60)).padStart(2, '0'));
+    setMinutos(String(total % 60).padStart(2, '0'));
+    setTemporizador({ elapsedMs, startedAt: null, running: false });
+  };
+
+  const editarHoras = (valor: string) => {
+    const limpio = valor.replace(/\\D/g, '').slice(0, 2);
+    setHoras(limpio);
+    if (!temporizador.running) setTemporizador(t => ({ ...t, elapsedMs: ((Number(limpio) || 0) * 60 + (Number(minutos) || 0)) * 60000 }));
+  };
+  const editarMinutos = (valor: string) => {
+    const limpio = valor.replace(/\\D/g, '').slice(0, 2);
+    setMinutos(limpio);
+    if (!temporizador.running) setTemporizador(t => ({ ...t, elapsedMs: ((Number(horas) || 0) * 60 + (Number(limpio) || 0)) * 60000 }));
+  };
 
   const cargarInicio = async (sessionEmail?: string | null) => {
     try {
@@ -145,7 +218,7 @@ export function App() {
       tiempo_minutos: totalMinutos, detalle: detalle.trim() || null, user_id: user.id
     });
     if (insertError) setMensaje(`Error: ${insertError.message}`);
-    else { setError(null); setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); if (cat) { const p = await cargarPreferencias(); setCategoria(p.categoriaId ? String(p.categoriaId) : ''); setProyecto(cat.proyectos.find(x => x.id === p.proyectoId)?.nombre || ''); setCliente(cat.clientes.find(x => x.id === p.clienteId)?.nombre || ''); } if (fecha === fechaLocal()) await recargarHoy(); }
+    else { setError(null); setMensaje('Registro guardado correctamente.'); setHoras('00'); setMinutos('00'); setDetalle(''); setTemporizador({ elapsedMs: 0, startedAt: null, running: false }); if (cat) { const p = await cargarPreferencias(); setCategoria(p.categoriaId ? String(p.categoriaId) : ''); setProyecto(cat.proyectos.find(x => x.id === p.proyectoId)?.nombre || ''); setCliente(cat.clientes.find(x => x.id === p.clienteId)?.nombre || ''); } if (fecha === fechaLocal()) await recargarHoy(); }
     setGuardandoNuevo(false);
   };
 
@@ -232,9 +305,9 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.3</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
+  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.4</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
-  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.3</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
+  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.4</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
     <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
     <label>Contraseña<input type="password" value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} required /></label>
     <button disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
@@ -254,7 +327,7 @@ export function App() {
   return <main class="shell">
     <header class="topbar">
       <img src="/favicon.svg" alt="EÓN" class="topbar-logo" />
-      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.3</span></div>
+      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.4</span></div>
       <div class="session-wrap">
         <button class="session-button" aria-label="Estado de sesión" aria-expanded={sesionAbierta} onClick={() => setSesionAbierta(v => !v)}>👤</button>
         {sesionAbierta && <div class="session-menu">
