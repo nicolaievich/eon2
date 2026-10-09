@@ -1,12 +1,14 @@
 # EÓN 2.0 ⏳
 
-**Versión actual: 2.1.0-alpha.4**
+**Versión actual: 2.1.0-alpha.5**
 
 EÓN 1.9 queda como versión estable y no se modifica.
 
 ## Historial reciente
 
-- **2.1.0-alpha.4** — Temporizador en el formulario de registro con iniciar, pausar y detener; actualiza el campo HH:MM y conserva el estado al recargar.
+- **2.1.0-alpha.5** — El temporizador muestra horas, minutos y segundos en pantalla; el campo de registro sigue guardando únicamente HH:MM.
+
+- **2.1.0-alpha.5** — Temporizador en el formulario de registro con iniciar, pausar y detener; actualiza el campo HH:MM y conserva el estado al recargar.
 
 - **2.1.0-alpha.3** — Encabezado móvil más austero: logo reducido, nombre centrado, versión discreta y menor altura/padding.
 
