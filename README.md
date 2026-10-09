@@ -1,6 +1,6 @@
 # EÓN 2.0 ⏳
 
-**Versión actual: 2.1.0-alpha.3**
+**Versión actual: 2.1.0-alpha.4**
 
 EÓN 1.9 queda como versión estable y no se modifica.
 
