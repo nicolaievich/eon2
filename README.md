@@ -1,40 +1,54 @@
 # EÓN 2.0 ⏳
 
-**Versión actual: 2.1.0-alpha.6**
+**Versión beta: 2.1.0-beta.1**
 
-EÓN 1.9 queda como versión estable y no se modifica.
+EÓN es la app para registrar el tiempo de trabajo de les emprendedores. Permite registrar horas por fecha, proyecto, categoría y cliente; consultar balances y administrar los catálogos.
 
-## Historial reciente
+> **Estado:** beta pública para pruebas. EÓN 1.9 continúa como versión estable y no se modifica.
 
-- **2.1.0-alpha.6** — Al enfocar Proyecto o Cliente, selecciona el texto actual para reemplazarlo enseguida o buscar sin borrar manualmente el valor predefinido.
+## Novedades de la beta 2.1.0-beta.1
 
-- **2.1.0-alpha.6** — El temporizador muestra horas, minutos y segundos en pantalla; el campo de registro sigue guardando únicamente HH:MM.
+- Landing pública con presentación del proyecto y acceso directo a crear una cuenta.
+- Registro con email, doble ingreso de contraseña y medidor de requisitos.
+- Validación de contraseña: 8 caracteres como mínimo, mayúscula, minúscula, número y símbolo.
+- Pantalla explícita para revisar el correo y confirmar el registro.
+- Inicio de sesión con control para mostrar u ocultar la contraseña.
+- Recuperación de acceso por email y formulario para definir una nueva contraseña, con doble ingreso, validador y visor.
+- Formularios adaptables a móvil y mensajes de estado en español.
 
-- **2.1.0-alpha.6** — Temporizador en el formulario de registro con iniciar, pausar y detener; actualiza el campo HH:MM y conserva el estado al recargar.
+## Autenticación y configuración de Supabase
 
-- **2.1.0-alpha.3** — Encabezado móvil más austero: logo reducido, nombre centrado, versión discreta y menor altura/padding.
+La autenticación usa Supabase Auth. Para que los flujos de correo funcionen en el dominio de producción:
 
-- **2.1.0-alpha.3** — Corrección de valores por defecto: se sincronizan con la cuenta de Supabase y dejan de depender exclusivamente del navegador.
-- **2.1.0-alpha.1** — Formulario de registro, balances, ajustes, valores por defecto y recuperación ante fallos iniciales de carga.
+1. En **Authentication → URL Configuration**, establecer la URL del sitio y permitir las URLs de redirección de la aplicación.
+2. En **Authentication → Email Templates**, comprobar las plantillas de confirmación y recuperación.
+3. La URL de redirección usada por la aplicación es el origen actual (`window.location.origin`). El dominio desplegado debe estar incluido en las URLs permitidas.
+4. Probar confirmación de cuenta, enlace de recuperación vigente y enlace vencido antes de anunciar la beta.
 
-## Estrategia inicial
+No se guardan contraseñas en la aplicación: Supabase gestiona las credenciales y envía los correos. Las claves públicas necesarias para el cliente se configuran mediante `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 
-EÓN 2.0 se desarrolla desde cero en este repositorio y utiliza inicialmente la misma base de Supabase que 1.9 para disponer de datos reales de prueba.
+## Desarrollo
 
-## Objetivos
+Requisitos: Node.js **20.19 o superior**.
 
-- Apertura rápida y consultas en paralelo.
-- Proyectos como eje del análisis.
-- Caché local e IndexedDB.
-- Temporizador persistente.
-- PWA/offline.
-- Preact + CSS propio.
-- RPC de PostgreSQL para agregaciones.
+```bash
+npm install
+npm run dev
+```
 
-## RPC
+Para comprobar el build de producción:
 
-Una RPC será una función PostgreSQL ejecutada desde Supabase. Por ejemplo, en lugar de descargar miles de registros para sumar horas por proyecto, EÓN podrá pedir a PostgreSQL directamente los totales del período y recibir únicamente los resultados agrupados.
+```bash
+npm run build
+npm run preview
+```
 
-## Próximo paso
+## Alcance actual
 
-Antes de crear las RPC definitivas hay que revisar el esquema SQL real de Supabase (tablas, tipos y RLS). No se ejecutan cambios de base de datos desde este repositorio todavía.
+La aplicación incluye registro de tiempos, temporizador persistente, balances, filtros, edición de registros, ajustes de categorías/proyectos/clientes y valores por defecto.
+
+EÓN 2.0 se desarrolla desde cero y, durante esta etapa, reutiliza la base de Supabase de EÓN 1.9 para las pruebas. La versión 1.9 estable permanece separada y sin cambios.
+
+## Próximo paso antes del anuncio público
+
+Completar una prueba real de punta a punta con el proyecto de Supabase de producción: alta → confirmación de correo → inicio de sesión → solicitud de recuperación → nueva contraseña → inicio de sesión con la nueva clave. También verificar las políticas RLS para asegurar que cada cuenta solo acceda a sus propios registros.
