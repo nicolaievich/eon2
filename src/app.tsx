@@ -183,7 +183,9 @@ export function App() {
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (vivo) {
+        const recuperando = window.location.hash.includes('type=recovery');
+        if (recuperando) setAuthView('reset');
+        if (vivo && !recuperando) {
           try {
             await cargarInicio(session?.user.email ?? null);
           } catch {
