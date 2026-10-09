@@ -1,12 +1,14 @@
 # EÓN 2.0 ⏳
 
-**Versión actual: 2.1.0-alpha.2**
+**Versión actual: 2.1.0-alpha.3**
 
 EÓN 1.9 queda como versión estable y no se modifica.
 
 ## Historial reciente
 
-- **2.1.0-alpha.2** — Corrección de valores por defecto: se sincronizan con la cuenta de Supabase y dejan de depender exclusivamente del navegador.
+- **2.1.0-alpha.3** — Encabezado móvil más austero: logo reducido, nombre centrado, versión discreta y menor altura/padding.
+
+- **2.1.0-alpha.3** — Corrección de valores por defecto: se sincronizan con la cuenta de Supabase y dejan de depender exclusivamente del navegador.
 - **2.1.0-alpha.1** — Formulario de registro, balances, ajustes, valores por defecto y recuperación ante fallos iniciales de carga.
 
 ## Estrategia inicial
