@@ -232,9 +232,9 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.2</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
+  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.3</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
-  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.2</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
+  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.3</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
     <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
     <label>Contraseña<input type="password" value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} required /></label>
     <button disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
@@ -253,7 +253,8 @@ export function App() {
 
   return <main class="shell">
     <header class="topbar">
-      <div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.2</span></div>
+      <img src="/favicon.svg" alt="EÓN" class="topbar-logo" />
+      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.3</span></div>
       <div class="session-wrap">
         <button class="session-button" aria-label="Estado de sesión" aria-expanded={sesionAbierta} onClick={() => setSesionAbierta(v => !v)}>👤</button>
         {sesionAbierta && <div class="session-menu">
