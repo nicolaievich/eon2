@@ -210,6 +210,100 @@ export function App() {
     return () => { vivo = false; data.subscription.unsubscribe(); };
   }, [reintento]);
 
+  const evaluarPassword = (password: string) => ({
+    length: password.length >= 8,
+    upper: /[A-ZÁÉÍÓÚÜÑ]/.test(password),
+    lower: /[a-záéíóúüñ]/.test(password),
+    number: /[0-9]/.test(password),
+    symbol: /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/.test(password),
+  });
+
+  const passwordValida = (password: string) => {
+    const estado = evaluarPassword(password);
+    return estado.length && estado.upper && estado.lower && estado.number && estado.symbol;
+  };
+
+  const registrarCuenta = async (event: Event) => {
+    event.preventDefault();
+    setAuthMessage(null);
+    if (signupPassword !== signupConfirm) {
+      setAuthMessage('Las contraseñas no coinciden.');
+      return;
+    }
+    if (!passwordValida(signupPassword)) {
+      setAuthMessage('La contraseña no cumple todos los requisitos.');
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: signupEmail.trim(),
+        password: signupPassword,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (signUpError) {
+        setAuthMessage(signUpError.message);
+      } else if (data.session) {
+        setLoginEmail(signupEmail.trim());
+        setLoginMessage('Tu cuenta se creó correctamente.');
+        setAuthView('login');
+      } else {
+        setResetEmail(signupEmail.trim());
+        setAuthView('check-email');
+      }
+    } catch (e) {
+      setAuthMessage(e instanceof Error ? e.message : 'No se pudo crear la cuenta.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const solicitarRecuperacion = async (event: Event) => {
+    event.preventDefault();
+    setAuthMessage(null);
+    setAuthBusy(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: window.location.origin,
+      });
+      if (resetError) setAuthMessage(resetError.message);
+      else setAuthView('check-email');
+    } catch (e) {
+      setAuthMessage(e instanceof Error ? e.message : 'No se pudo enviar el correo de recuperación.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const guardarNuevaPassword = async (event: Event) => {
+    event.preventDefault();
+    setAuthMessage(null);
+    if (resetPassword !== resetConfirm) {
+      setAuthMessage('Las contraseñas no coinciden.');
+      return;
+    }
+    if (!passwordValida(resetPassword)) {
+      setAuthMessage('La contraseña no cumple todos los requisitos.');
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: resetPassword });
+      if (updateError) setAuthMessage(updateError.message);
+      else {
+        setLoginPassword('');
+        setResetPassword('');
+        setResetConfirm('');
+        setAuthMessage('Contraseña actualizada. Ya podés ingresar con tu nueva contraseña.');
+        setAuthView('login');
+      }
+    } catch (e) {
+      setAuthMessage(e instanceof Error ? e.message : 'No se pudo actualizar la contraseña.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
   const entrar = async (event: Event) => {
     event.preventDefault(); setLoginBusy(true); setLoginMessage(null);
     const { error: authError } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
