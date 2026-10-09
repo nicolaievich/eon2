@@ -420,7 +420,7 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.6</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
+  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-beta.1</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
   if (!email) {
     const requisitos = (password: string) => {
@@ -498,7 +498,7 @@ export function App() {
   return <main class="shell">
     <header class="topbar">
       <img src="/favicon.svg" alt="EÓN" class="topbar-logo" />
-      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.6</span></div>
+      <div class="topbar-title"><strong>eon</strong><span>2.1.0-beta.1</span></div>
       <div class="session-wrap">
         <button class="session-button" aria-label="Estado de sesión" aria-expanded={sesionAbierta} onClick={() => setSesionAbierta(v => !v)}>👤</button>
         {sesionAbierta && <div class="session-menu">
