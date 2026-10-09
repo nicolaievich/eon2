@@ -63,6 +63,20 @@ export function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginMessage, setLoginMessage] = useState<string | null>(null);
+  const [authView, setAuthView] = useState<'landing' | 'login' | 'signup' | 'check-email' | 'forgot' | 'reset'>('landing');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirm, setShowSignupConfirm] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirm, setSignupConfirm] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
 
   const [fecha, setFecha] = useState(fechaLocal());
   const [proyecto, setProyecto] = useState('');
@@ -312,12 +326,68 @@ export function App() {
 
   if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.6</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
-  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.6</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
-    <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
-    <label>Contraseña<input type="password" value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} required /></label>
-    <button disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
-    {loginMessage && <p class="error">{loginMessage}</p>}
-  </form><p class="muted small">EÓN 1.9 continúa siendo la versión estable y no se modifica.</p></section></main>;
+  if (!email) {
+    const requisitos = (password: string) => {
+      const estado = evaluarPassword(password);
+      return <ul class="password-rules" aria-label="Requisitos de contraseña">
+        <li class={estado.length ? 'met' : ''}>Al menos 8 caracteres</li>
+        <li class={estado.upper ? 'met' : ''}>Una letra mayúscula</li>
+        <li class={estado.lower ? 'met' : ''}>Una letra minúscula</li>
+        <li class={estado.number ? 'met' : ''}>Un número</li>
+        <li class={estado.symbol ? 'met' : ''}>Un símbolo (por ejemplo, ! o #)</li>
+      </ul>;
+    };
+    const campoPassword = (label: string, value: string, onInput: (v: string) => void, visible: boolean, toggle: () => void, required = true) =>
+      <label class="auth-label">{label}<div class="password-field"><input type={visible ? 'text' : 'password'} value={value} onInput={e => onInput((e.currentTarget as HTMLInputElement).value)} required={required} autocomplete="new-password" /><button type="button" class="password-toggle" onClick={toggle} aria-label={visible ? 'Ocultar contraseña' : 'Ver contraseña'}>{visible ? 'Ocultar' : 'Ver contraseña'}</button></div></label>;
+    return <main class="auth-page">
+      <header class="auth-top"><a class="auth-brand" href="/" onClick={e => { e.preventDefault(); setAuthView('landing'); setAuthMessage(null); }}><img src="/favicon.svg" alt="" /> <strong>EÓN</strong><span>2</span></a>
+        <div class="auth-top-actions"><button class="auth-link" onClick={() => { setAuthView('login'); setAuthMessage(null); }}>Ingresar</button><button class="button button-small" onClick={() => { setAuthView('signup'); setAuthMessage(null); }}>Crear cuenta gratis</button></div>
+      </header>
+      {authView === 'landing' && <section class="landing-hero">
+        <div class="landing-copy"><span class="landing-eyebrow">EÓN · REGISTRO DE TIEMPOS</span><h1>Tu tiempo de trabajo, <em>en perspectiva.</em></h1>
+          <p class="landing-lead">La app para registro de tiempo de trabajo de les emprendedores.</p>
+          <p class="landing-description">Registrá en qué trabajás, organizá tus proyectos y clientes, y entendé mejor cómo se distribuyen tus horas.</p>
+          <p class="landing-prompt">Empezá ahora gratis acá <span aria-hidden="true">→</span></p>
+          <button class="button landing-cta" onClick={() => { setAuthView('signup'); setAuthMessage(null); }}>Hacerme cuenta gratis</button>
+          <p class="landing-footnote">Gratis para empezar · Tus registros, organizados en un solo lugar.</p>
+        </div>
+        <div class="landing-preview" aria-hidden="true"><div class="preview-window"><div class="preview-top"><span></span><span></span><span></span><b>EÓN / MI TIEMPO</b></div><div class="preview-greeting">Una mirada a tu trabajo</div><div class="preview-total"><small>TIEMPO REGISTRADO</small><strong>06:45</strong><span>Esta semana</span></div><div class="preview-bars"><div><span>Desarrollo</span><i><b style={{width:'78%'}} /></i><strong>3:20</strong></div><div><span>Clientes</span><i><b style={{width:'52%'}} /></i><strong>2:10</strong></div><div><span>Gestión</span><i><b style={{width:'31%'}} /></i><strong>1:15</strong></div></div><div class="preview-note">Cada hora cuenta. Empezá a registrarla.</div></div><div class="preview-orbit orbit-one"></div><div class="preview-orbit orbit-two"></div></div>
+      </section>}
+      {authView !== 'landing' && <section class="auth-panel">
+        <button class="back-link" onClick={() => { setAuthView('landing'); setAuthMessage(null); }}>← Volver al inicio</button>
+        {authView === 'login' && <><span class="landing-eyebrow">QUÉ BUENO VERTE</span><h1>Ingresar a EÓN</h1><p class="muted">Continuá con tu cuenta para registrar tu tiempo.</p>
+          <form onSubmit={entrar} class="login-form">
+            <label class="auth-label">Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
+            <label class="auth-label">Contraseña<div class="password-field"><input type={showLoginPassword ? 'text' : 'password'} value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} autocomplete="current-password" required /><button type="button" class="password-toggle" onClick={() => setShowLoginPassword(v => !v)}>{showLoginPassword ? 'Ocultar' : 'Ver contraseña'}</button></div></label>
+            <button class="button auth-submit" disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
+          </form><button class="auth-link auth-under" onClick={() => { setResetEmail(loginEmail); setAuthView('forgot'); setAuthMessage(null); }}>¿Olvidaste tu contraseña?</button><p class="auth-switch">¿Todavía no tenés cuenta? <button class="auth-link" onClick={() => setAuthView('signup')}>Crear cuenta gratis</button></p>
+          {loginMessage && <p class="form-message form-error" role="alert">{loginMessage}</p>}</>}
+        {authView === 'signup' && <><span class="landing-eyebrow">EMPEZÁ GRATIS</span><h1>Crear tu cuenta</h1><p class="muted">Solo necesitás tu email y una contraseña segura.</p>
+          <form onSubmit={registrarCuenta} class="login-form">
+            <label class="auth-label">Email<input type="email" value={signupEmail} onInput={e => setSignupEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label>
+            {campoPassword('Contraseña',signupPassword,setSignupPassword,showSignupPassword,()=>setShowSignupPassword(v=>!v))}
+            {requisitos(signupPassword)}
+            {campoPassword('Repetí la contraseña',signupConfirm,setSignupConfirm,showSignupConfirm,()=>setShowSignupConfirm(v=>!v))}
+            {signupConfirm && <p class={signupPassword === signupConfirm ? 'match-ok' : 'match-no'}>{signupPassword === signupConfirm ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'}</p>}
+            <button class="button auth-submit" disabled={authBusy || !passwordValida(signupPassword) || signupPassword !== signupConfirm}>{authBusy ? 'Creando cuenta…' : 'Crear cuenta gratis'}</button>
+          </form><p class="auth-switch">¿Ya tenés cuenta? <button class="auth-link" onClick={() => setAuthView('login')}>Ingresar</button></p>
+          {authMessage && <p class="form-message form-error" role="alert">{authMessage}</p>}</>}
+        {authView === 'forgot' && <><span class="landing-eyebrow">RECUPERAR ACCESO</span><h1>¿Olvidaste tu contraseña?</h1><p class="muted">Te enviamos un enlace para que puedas crear una nueva.</p>
+          <form onSubmit={solicitarRecuperacion} class="login-form"><label class="auth-label">Email<input type="email" value={resetEmail} onInput={e => setResetEmail((e.currentTarget as HTMLInputElement).value)} autocomplete="email" required /></label><button class="button auth-submit" disabled={authBusy}>{authBusy ? 'Enviando…' : 'Enviar enlace de recuperación'}</button></form>
+          {authMessage && <p class="form-message form-error" role="alert">{authMessage}</p>}
+        </>}
+        {authView === 'reset' && <><span class="landing-eyebrow">NUEVA CONTRASEÑA</span><h1>Elegí una nueva contraseña</h1><p class="muted">Usá una contraseña segura que puedas recordar.</p>
+          <form onSubmit={guardarNuevaPassword} class="login-form">{campoPassword('Nueva contraseña',resetPassword,setResetPassword,showResetPassword,()=>setShowResetPassword(v=>!v))}{requisitos(resetPassword)}{campoPassword('Repetí la nueva contraseña',resetConfirm,setResetConfirm,showResetConfirm,()=>setShowResetConfirm(v=>!v))}
+            {resetConfirm && <p class={resetPassword === resetConfirm ? 'match-ok' : 'match-no'}>{resetPassword === resetConfirm ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'}</p>}
+            <button class="button auth-submit" disabled={authBusy || !passwordValida(resetPassword) || resetPassword !== resetConfirm}>{authBusy ? 'Guardando…' : 'Guardar nueva contraseña'}</button>
+          </form>{authMessage && <p class="form-message form-error" role="alert">{authMessage}</p>}
+        </>}
+        {authView === 'check-email' && <div class="check-email"><div class="mail-symbol" aria-hidden="true">✉</div><span class="landing-eyebrow">UN PASO MÁS</span><h1>Revisá tu email</h1><p>Te enviamos un correo a <strong>{resetEmail || signupEmail}</strong> con las instrucciones para continuar.</p><p class="muted">Buscá el mensaje en tu bandeja de entrada y, si no aparece, revisá también Spam o Correo no deseado.</p><button class="button auth-submit" onClick={() => { setAuthView('login'); setAuthMessage(null); }}>Volver a ingresar</button></div>}
+        {authMessage && authView !== 'signup' && authView !== 'check-email' && <p class="form-message form-error" role="alert">{authMessage}</p>}
+      </section>}
+      <footer class="auth-footer">EÓN · Registro de Tiempos <span>Hecho para trabajar con más claridad.</span></footer>
+    </main>;
+  }
 
   const fila = (r: Registro) => <tr key={r.id}>
     <td><input class="cell-input" type="date" value={r.fecha} onChange={e => editar(r,'fecha',(e.currentTarget as HTMLInputElement).value)} /></td>
