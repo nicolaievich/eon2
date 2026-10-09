@@ -310,9 +310,9 @@ export function App() {
     setGuardando(null);
   };
 
-  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.5</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
+  if (iniciando || (email && !cat)) return <main class="shell narrow"><section class="card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.6</span></div><h1>Registro de Tiempos</h1><p class="muted">{error ? 'No se pudieron cargar los datos. Reintentando…' : 'Cargando tus datos…'}</p></section></main>;
 
-  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.5</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
+  if (!email) return <main class="shell narrow auth-shell"><section class="card auth-card"><div class="brand"><img src="/favicon.svg" alt="" class="brand-icon" /><span>eon 2.1.0-alpha.6</span></div><h1>Ingresar</h1><form onSubmit={entrar} class="login-form">
     <label>Email<input type="email" value={loginEmail} onInput={e => setLoginEmail((e.currentTarget as HTMLInputElement).value)} required /></label>
     <label>Contraseña<input type="password" value={loginPassword} onInput={e => setLoginPassword((e.currentTarget as HTMLInputElement).value)} required /></label>
     <button disabled={loginBusy}>{loginBusy ? 'Ingresando…' : 'Ingresar'}</button>
@@ -332,7 +332,7 @@ export function App() {
   return <main class="shell">
     <header class="topbar">
       <img src="/favicon.svg" alt="EÓN" class="topbar-logo" />
-      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.5</span></div>
+      <div class="topbar-title"><strong>eon</strong><span>2.1.0-alpha.6</span></div>
       <div class="session-wrap">
         <button class="session-button" aria-label="Estado de sesión" aria-expanded={sesionAbierta} onClick={() => setSesionAbierta(v => !v)}>👤</button>
         {sesionAbierta && <div class="session-menu">
@@ -352,9 +352,9 @@ export function App() {
       <section class="card registro-card"><div class="registro-heading"><span class="eyebrow">HOY</span><h2>Registrar tiempo</h2><p class="muted">Cargá un nuevo registro. Debajo vas a ver el total, la distribución por categoría y los registros del día.</p></div>
         <form class="registro-form" onSubmit={guardarNuevo}>
           <label>Fecha<input type="date" value={fecha} onInput={e => setFecha((e.currentTarget as HTMLInputElement).value)} required /></label>
-          <label>Proyecto<input list="proyectos-lista" value={proyecto} onInput={e => setProyecto((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar proyecto..." /><datalist id="proyectos-lista">{cat?.proyectos.map(p => <option value={p.nombre} key={p.id} />)}</datalist></label>
+          <label>Proyecto<input list="proyectos-lista" value={proyecto} onFocus={e => (e.currentTarget as HTMLInputElement).select()} onInput={e => setProyecto((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar proyecto..." /><datalist id="proyectos-lista">{cat?.proyectos.map(p => <option value={p.nombre} key={p.id} />)}</datalist></label>
           <label>Categoría<select value={categoria} onChange={e => setCategoria((e.currentTarget as HTMLSelectElement).value)} required><option value="">Seleccionar categoría...</option>{cat?.categorias.map(c => <option value={c.id} key={c.id}>{c.nombre}</option>)}</select></label>
-          <label>Cliente<input list="clientes-lista" value={cliente} onInput={e => setCliente((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar cliente..." /><datalist id="clientes-lista">{cat?.clientes.map(c => <option value={c.nombre} key={c.id} />)}</datalist></label>
+          <label>Cliente<input list="clientes-lista" value={cliente} onFocus={e => (e.currentTarget as HTMLInputElement).select()} onInput={e => setCliente((e.currentTarget as HTMLInputElement).value)} placeholder="Buscar cliente..." /><datalist id="clientes-lista">{cat?.clientes.map(c => <option value={c.nombre} key={c.id} />)}</datalist></label>
           <label class="campo-tiempo">Tiempo (HH:MM)<div class="tiempo-controles"><div class="tiempo-input"><input aria-label="Horas" inputMode="numeric" maxLength={2} value={horas} disabled={temporizador.running} onInput={e => editarHoras((e.currentTarget as HTMLInputElement).value)} /><span>:</span><input aria-label="Minutos" inputMode="numeric" maxLength={2} value={minutos} disabled={temporizador.running} onInput={e => editarMinutos((e.currentTarget as HTMLInputElement).value)} /></div><div class="timer-buttons" aria-label="Controles del temporizador"><button type="button" class="timer-button timer-play" aria-label="Iniciar temporizador" title="Iniciar" disabled={temporizador.running} onClick={iniciarTemporizador}>▶</button><button type="button" class="timer-button" aria-label="Pausar temporizador" title="Pausar" disabled={!temporizador.running} onClick={pausarTemporizador}>Ⅱ</button><button type="button" class="timer-button timer-stop" aria-label="Detener temporizador" title="Detener" disabled={!temporizador.running && temporizador.elapsedMs === 0} onClick={detenerTemporizador}>■</button></div></div>{(temporizador.running || temporizador.elapsedMs > 0) && <span class="timer-status" role="status">{temporizador.running ? 'Temporizador en marcha' : 'Temporizador pausado'} · {mostrarTiempoTemporizador(milisegundosTemporizador)}</span>}</label>
           <label class="detalle-field">Detalle<textarea rows={3} value={detalle} onInput={e => setDetalle((e.currentTarget as HTMLTextAreaElement).value)} placeholder="¿Qué hiciste? (opcional)" /></label>
           <button class="guardar-button" disabled={guardandoNuevo}>{guardandoNuevo ? 'Guardando…' : 'Guardar registro'}</button>
